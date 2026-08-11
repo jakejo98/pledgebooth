@@ -1,0 +1,19 @@
+:root{
+  --gold: #C9A227;
+  --gold-light: #D9B84D;
+  --gold-dark: #9C7C18;
+  --ivory: #F5EFE0;
+  --ivory-2: #FBF8F1;
+  --charcoal: #2B2420;
+  --line: #E2D6B8;
+  --ink: #3A2F22;
+  --ink-soft: #7A6F5D;
+  --white: #FFFDF9;
+  --error: #B5533C;
+}
+
+body{
+  font-family:'Pretendard';
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
