@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>Vow - 예식 정보 등록</title>
+<link rel="icon" type="image/x-icon" href="../assets/favicon/favicon.ico">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="../css/reset.css">
+<link rel="stylesheet" href="../css/common.css">
+<link rel="stylesheet" href="../css/register.css">
+<script type="module" src="../js/register.js"></script>
+</head>
+<body>
+
+<section class="common_section">
+  <div class="container">
+    <!-- 로고 영역 -->
+    <div class="logo_wrap">
+      <img src="../assets/images/logo.svg" class="logo" alt="로고 이미지">
+      <p class="logo_description">가장 아름다운 순간을 기록하세요.</p>
+    </div>
+
+    <div class="eyebrow">Wedding Info</div>
+    <h2 class="heading">예식 정보 등록</h2>
+    <p class="subheading">신랑・신부 성함과 예식 일자를 입력하면 포토부스 화면에 반영돼요.</p>
+
+    <form id="form_register" novalidate>
+      <div class="field">
+        <label for="couple_names">신랑 & 신부 성함</label>
+        <input type="text" id="couple_names" name="coupleNames" placeholder="JIHOON & HAYOUNG" required>
+        <div class="hint" id="couple_names_hint"></div>
+      </div>
+
+      <div class="field">
+        <label for="wedding_date">예식 일자</label>
+        <div class="date_field">
+          <input type="text" id="wedding_date_display" class="date_display" placeholder="YYYY. MM. DD." readonly aria-hidden="true" tabindex="-1">
+          <svg class="date_icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>
+          </svg>
+          <input type="date" id="wedding_date" name="weddingDate" class="date_native" required>
+        </div>
+        <div class="hint" id="wedding_date_hint"></div>
+      </div>
+
+      <button type="submit" class="btn_primary" id="register_submit">포토 스튜디오 입장하기</button>
+    </form>
+
+    <button type="button" class="btn_logout" id="logout_btn">로그아웃</button>
+
+  </div>
+</section>
+</body>
+</html>

@@ -1,0 +1,51 @@
+.date_field{ position:relative; }
+.date_field .date_display{
+  width:100%;
+  padding-right:40px;
+  cursor:pointer;
+}
+.date_field .date_display::placeholder{ color:#B8A98A; }
+.date_field .date_icon{
+  position:absolute;
+  right:14px;
+  top:50%;
+  transform:translateY(-50%);
+  width:18px;
+  height:18px;
+  color:var(--ink-soft);
+  pointer-events:none;
+}
+.date_field .date_native{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  border:none;
+  background:none;
+  padding:0;
+  margin:0;
+  pointer-events:none;
+}
+.date_field:focus-within .date_display{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(201,162,39,0.15);
+}
+
+.btn_logout{
+  display:block;
+  width:100%;
+  margin-top:12px;
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:13px;
+  font-family:inherit;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--ink-soft);
+  cursor:pointer;
+  transition:color 0.15s ease, border-color 0.15s ease;
+}
+.btn_logout:hover{ color:var(--gold-dark); border-color:var(--gold); }
+.btn_logout:disabled{ opacity:0.6; cursor:not-allowed; }

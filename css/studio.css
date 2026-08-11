@@ -1,0 +1,110 @@
+html, body.studio_body{
+  height:100%;
+  background:#000;
+  overflow:hidden;
+}
+
+.camera_stage{
+  position:relative;
+  width:100%;
+  height:100dvh;
+  background:#000;
+}
+.camera_stage video,
+.camera_stage img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.camera_stage video{ transform:scaleX(-1); }
+
+.camera_topbar{
+  position:absolute;
+  top:0; left:0; right:0;
+  display:flex;
+  justify-content:flex-end;
+  padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 24px;
+  background:linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+}
+.close_btn{
+  width:36px; height:36px;
+  border-radius:50%;
+  background:rgba(0,0,0,0.35);
+  border:none;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.close_btn svg{ width:18px; height:18px; }
+
+.camera_caption{
+  position:absolute;
+  left:0; right:0; bottom:150px;
+  padding:0 24px;
+  text-align:center;
+  color:#fff;
+  letter-spacing:0.02em;
+  line-height:1.5;
+  text-shadow:0 2px 6px rgba(0,0,0,0.5);
+  pointer-events:none;
+}
+.camera_caption div:first-child{ font-size:16px; font-weight:700; margin-bottom:4px; }
+.camera_caption div:last-child{ font-size:12.5px; font-weight:600; opacity:0.85; }
+
+.camera_hint{
+  position:absolute;
+  left:24px; right:24px; top:50%;
+  transform:translateY(-50%);
+  text-align:center;
+  color:#fff;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.camera_controls{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  display:flex;
+  justify-content:center;
+  padding:0 0 calc(env(safe-area-inset-bottom, 0px) + 32px);
+}
+.shutter_btn{
+  width:72px;
+  height:72px;
+  border-radius:50%;
+  background:#fff;
+  border:4px solid rgba(255,255,255,0.4);
+  padding:0;
+  cursor:pointer;
+  transition:transform 0.15s ease;
+}
+.shutter_btn:active{ transform:scale(0.92); }
+.shutter_btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+.camera_controls_after{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  padding:0 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+}
+.ghost_btn{
+  flex:1;
+  max-width:160px;
+  text-align:center;
+  padding:13px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.14);
+  border:1px solid rgba(255,255,255,0.4);
+  color:#fff;
+  font-size:14px;
+  font-weight:600;
+  font-family:inherit;
+  text-decoration:none;
+  cursor:pointer;
+}
+.ghost_btn:hover{ background:rgba(255,255,255,0.22); }

@@ -1,43 +1,29 @@
-  // ────────────────────────────────────────────────────────────
-  // 1) Firebase 설정 (photobooth-vow-1fe77 프로젝트 연결 완료)
-  // ────────────────────────────────────────────────────────────
-  const firebaseConfig = {
-    apiKey: "AIzaSyDGr9ouFPqCxvGrjZEF7B9oHHz3Qc6VEGg",
-    authDomain: "photobooth-vow-1fe77.firebaseapp.com",
-    projectId: "photobooth-vow-1fe77",
-    storageBucket: "photobooth-vow-1fe77.firebasestorage.app",
-    messagingSenderId: "286806450980",
-    appId: "1:286806450980:web:e71d9a011eecbc76e889b1"
-  };
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { auth, db } from './firebase.js';
+// Storage(로고 업로드)는 일시 제외 — 필요해질 때 firebase-storage.js를 다시 import하세요.
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-  import {
-    getAuth,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    sendPasswordResetEmail,
-    signOut
-  } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-  // Storage(로고 업로드)는 일시 제외 — 필요해질 때 firebase-storage.js를 다시 import하세요.
+// ════════════════════════════════════════════════════════════
+// 프론트엔드 로직: 탭 전환, 폼 검증, 로그인/회원가입 화면 동작
+// ════════════════════════════════════════════════════════════
+function initFrontend(){
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // ────────────────────────────────────────────────────────────
-  // 2) 탭 전환
-  // ────────────────────────────────────────────────────────────
-  const tabLogin = document.getElementById('tab-login');
-  const tabSignup = document.getElementById('tab-signup');
-  const paneLogin = document.getElementById('pane-login');
-  const paneSignup = document.getElementById('pane-signup');
+  // ────────────────────────────────────────────────────────
+  // 탭 전환
+  // ────────────────────────────────────────────────────────
+  const tabLogin = document.getElementById('tab_login');
+  const tabSignup = document.getElementById('tab_signup');
+  const paneLogin = document.getElementById('pane_login');
+  const paneSignup = document.getElementById('pane_signup');
 
   function showLogin(){
     tabLogin.classList.add('active'); tabLogin.setAttribute('aria-selected','true');
@@ -53,23 +39,52 @@
   tabSignup.addEventListener('click', showSignup);
 
   // password visibility toggle
-  document.querySelectorAll('.toggle-pw').forEach(btn=>{
+  document.querySelectorAll('.toggle_pw').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const target = document.getElementById(btn.dataset.target);
       target.type = target.type === 'password' ? 'text' : 'password';
     });
   });
 
-  // ────────────────────────────────────────────────────────────
-  // 3) 로고 업로드는 일시 제외 (Storage 연동 시 다시 추가)
-  // ────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────
+  // 로고 업로드는 일시 제외 (Storage 연동 시 다시 추가)
+  // ────────────────────────────────────────────────────────
 
-  // ────────────────────────────────────────────────────────────
-  // 4) 공통 유효성 검사 헬퍼
-  // ────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────
+  // 공통 유효성 검사 헬퍼
+  // ────────────────────────────────────────────────────────
   function setHint(id, msg){ document.getElementById(id).textContent = msg || ''; }
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const biznumRe = /^\d{3}-\d{2}-\d{5}$/;
+
+  // 연락처 입력 시 자동으로 하이픈(-)을 넣어줍니다. 예: 01012345678 → 010-1234-5678
+  function formatPhoneNumber(value){
+    const digits = value.replace(/[^0-9]/g, '').slice(0, 11);
+    if(digits.length < 4) return digits;
+    if(digits.length < 8) return `${digits.slice(0,3)}-${digits.slice(3)}`;
+    return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+  }
+
+  const signupPhoneInput = document.getElementById('signup_phone');
+  signupPhoneInput.addEventListener('input', (e)=>{
+    e.target.value = formatPhoneNumber(e.target.value);
+  });
+
+  // 이메일 형식을 입력 중/포커스 아웃 시 바로바로 검사해서 보여줍니다.
+  function bindLiveEmailValidation(inputId, hintId){
+    const input = document.getElementById(inputId);
+    input.addEventListener('blur', ()=>{
+      const value = input.value.trim();
+      if(value.length === 0){ setHint(hintId,''); return; }
+      setHint(hintId, emailRe.test(value) ? '' : '올바른 이메일 형식이 아니에요. (예: name@example.com)');
+    });
+    input.addEventListener('input', ()=>{
+      if(document.getElementById(hintId).textContent){
+        setHint(hintId, emailRe.test(input.value.trim()) ? '' : '올바른 이메일 형식이 아니에요. (예: name@example.com)');
+      }
+    });
+  }
+  bindLiveEmailValidation('login_email', 'login_email_hint');
+  bindLiveEmailValidation('signup_email', 'signup_email_hint');
 
   function setLoading(btn, loading, labelDefault, labelLoading){
     btn.disabled = loading;
@@ -93,20 +108,20 @@
     }
   }
 
-  // ────────────────────────────────────────────────────────────
-  // 5) 로그인
-  // ────────────────────────────────────────────────────────────
-  const loginForm = document.getElementById('form-login');
-  const loginBtn = loginForm.querySelector('.btn-primary');
+  // ────────────────────────────────────────────────────────
+  // 로그인
+  // ────────────────────────────────────────────────────────
+  const loginForm = document.getElementById('form_login');
+  const loginBtn = loginForm.querySelector('.btn_primary');
 
   loginForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const email = document.getElementById('login-email').value.trim();
-    const pw = document.getElementById('login-password').value;
+    const email = document.getElementById('login_email').value.trim();
+    const pw = document.getElementById('login_password').value;
 
     let ok = true;
-    if(!emailRe.test(email)){ setHint('login-email-hint','올바른 이메일 주소를 입력해주세요.'); ok = false; } else setHint('login-email-hint','');
-    if(pw.length < 1){ setHint('login-password-hint','비밀번호를 입력해주세요.'); ok = false; } else setHint('login-password-hint','');
+    if(!emailRe.test(email)){ setHint('login_email_hint','올바른 이메일 주소를 입력해주세요.'); ok = false; } else setHint('login_email_hint','');
+    if(pw.length < 1){ setHint('login_password_hint','비밀번호를 입력해주세요.'); ok = false; } else setHint('login_password_hint','');
     if(!ok) return;
 
     setLoading(loginBtn, true, '로그인', '로그인 중...');
@@ -119,73 +134,43 @@
 
       if(status !== '인증'){
         await signOut(auth);
-        setHint('login-password-hint','아직 관리자 승인 대기 중이에요. 승인 완료 후 다시 로그인해주세요.');
+        setHint('login_password_hint','아직 관리자 승인 대기 중이에요. 승인 완료 후 다시 로그인해주세요.');
         return;
       }
 
-      // TODO: 로그인 성공 후 이동할 페이지로 교체하세요.
-      window.location.href = 'dashboard.html';
+      window.location.href = 'pages/register.html';
     }catch(err){
-      setHint('login-password-hint', authErrorMessage(err));
+      setHint('login_password_hint', authErrorMessage(err));
     }finally{
       setLoading(loginBtn, false, '로그인', '로그인 중...');
     }
   });
 
-  // 비밀번호 찾기: 입력된 이메일로 재설정 링크 발송
-  const forgotLink = document.getElementById('forgot-password-link');
-  forgotLink.addEventListener('click', async (e)=>{
-    e.preventDefault();
-    const emailInput = document.getElementById('login-email');
-    const email = emailInput.value.trim();
 
-    if(!emailRe.test(email)){
-      setHint('login-email-hint','비밀번호를 재설정할 이메일을 먼저 입력해주세요.');
-      emailInput.focus();
-      return;
-    }
-    setHint('login-email-hint','');
-
-    const originalText = forgotLink.textContent;
-    forgotLink.textContent = '발송 중...';
-    forgotLink.style.pointerEvents = 'none';
-    try{
-      await sendPasswordResetEmail(auth, email);
-      setHint('login-password-hint','');
-      forgotLink.textContent = '재설정 메일을 보냈어요';
-      setTimeout(()=>{ forgotLink.textContent = originalText; }, 4000);
-    }catch(err){
-      setHint('login-email-hint', authErrorMessage(err));
-      forgotLink.textContent = originalText;
-    }finally{
-      forgotLink.style.pointerEvents = 'auto';
-    }
-  });
-
-  // ────────────────────────────────────────────────────────────
-  // 6) 회원가입 (Auth → Firestore 업체 정보 저장)
-  // ────────────────────────────────────────────────────────────
-  const signupForm = document.getElementById('form-signup');
-  const signupBtn = signupForm.querySelector('.btn-primary');
+  // ────────────────────────────────────────────────────────
+  // 회원가입 (Auth → Firestore 업체 정보 저장)
+  // ────────────────────────────────────────────────────────
+  const signupForm = document.getElementById('form_signup');
+  const signupBtn = signupForm.querySelector('.btn_primary');
 
   signupForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
 
-    const company = document.getElementById('signup-company').value.trim();
-    const biznum = document.getElementById('signup-biznum').value.trim();
-    const name = document.getElementById('signup-name').value.trim();
-    const phone = document.getElementById('signup-phone').value.trim();
-    const email = document.getElementById('signup-email').value.trim();
-    const pw = document.getElementById('signup-password').value;
-    const pw2 = document.getElementById('signup-password2').value;
+    const company = document.getElementById('signup_company').value.trim();
+    const name = document.getElementById('signup_name').value.trim();
+    const phone = document.getElementById('signup_phone').value.trim();
+    const email = document.getElementById('signup_email').value.trim();
+    const pw = document.getElementById('signup_password').value;
+    const passwordConfirm = document.getElementById('signup_password_confirm').value;
     const agree = signupForm.querySelector('input[name="agree"]').checked;
 
     let ok = true;
-    if(!biznumRe.test(biznum)){ setHint('signup-biznum-hint','000-00-00000 형식으로 입력해주세요.'); ok = false; } else setHint('signup-biznum-hint','');
-    if(!emailRe.test(email)){ setHint('signup-email-hint','올바른 이메일 주소를 입력해주세요.'); ok = false; } else setHint('signup-email-hint','');
-    if(pw.length < 8){ setHint('signup-password-hint','비밀번호는 8자 이상이어야 해요.'); ok = false; } else setHint('signup-password-hint','');
-    if(pw !== pw2){ setHint('signup-password2-hint','비밀번호가 일치하지 않아요.'); ok = false; } else setHint('signup-password2-hint','');
-    if(!company || !name || !phone){ ok = false; }
+    if(!company){ setHint('signup_company_hint','업체명을 입력해주세요.'); ok = false; } else setHint('signup_company_hint','');
+    if(!name){ setHint('signup_name_hint','이름을 입력해주세요.'); ok = false; } else setHint('signup_name_hint','');
+    if(!phone){ setHint('signup_phone_hint','연락처를 입력해주세요.'); ok = false; } else setHint('signup_phone_hint','');
+    if(!emailRe.test(email)){ setHint('signup_email_hint','올바른 이메일 주소를 입력해주세요.'); ok = false; } else setHint('signup_email_hint','');
+    if(pw.length < 8){ setHint('signup_password_hint','비밀번호는 8자 이상이어야 해요.'); ok = false; } else setHint('signup_password_hint','');
+    if(pw !== passwordConfirm){ setHint('signup_password_confirm_hint','비밀번호가 일치하지 않아요.'); ok = false; } else setHint('signup_password_confirm_hint','');
     if(!agree){ ok = false; }
     if(!ok) return;
 
@@ -200,8 +185,7 @@
       //    firebase-storage.js를 다시 import하고 이 자리에 업로드 로직을 추가하세요.
       await setDoc(doc(db, 'member', uid), {
         company,
-        bizNumber: biznum,
-        contactName: name,
+        name,
         phone,
         email,
         logoURL: null,
@@ -215,7 +199,7 @@
       signupForm.reset();
       showSignupSuccess(email);
     }catch(err){
-      setHint('signup-email-hint', authErrorMessage(err));
+      setHint('signup_email_hint', authErrorMessage(err));
     }finally{
       setLoading(signupBtn, false, '가입하기', '가입 처리 중...');
     }
@@ -223,12 +207,15 @@
 
   // 가입 완료 안내: 폼을 관리자 승인 대기 메시지로 교체
   function showSignupSuccess(email){
-    const pane = document.getElementById('pane-signup');
+    const pane = document.getElementById('pane_signup');
     pane.innerHTML = `
       <div class="eyebrow">Pending approval</div>
       <h2 class="heading">가입 신청이 접수됐어요</h2>
       <p class="subheading"><strong>${email}</strong> 계정은 관리자 승인 후 로그인할 수 있어요. 승인이 완료되면 안내해드릴게요.</p>
-      <button type="button" class="btn-primary" id="go-to-login-after-signup">로그인 화면으로</button>
+      <button type="button" class="btn_primary" id="go_to_login_after_signup">로그인 화면으로</button>
     `;
-    document.getElementById('go-to-login-after-signup').addEventListener('click', showLogin);
+    document.getElementById('go_to_login_after_signup').addEventListener('click', showLogin);
   }
+}
+
+initFrontend();

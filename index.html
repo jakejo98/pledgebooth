@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#F5EFE0">
+<meta name="theme-color" content="#FFFFF">
 <title>Vow - 회원가입/로그인 </title>
 <link rel="icon" type="image/x-icon" href="assets/favicon/favicon.ico">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
@@ -14,131 +14,117 @@
 </head>
 <body>
 
-<div class="stage">
-  <div class="card">
-
-    <div class="brand-mark">
+<section class="common_section">
+  <div class="container">
+    <!-- 로고 영역 -->
+    <div class="logo_wrap">
       <img src="assets/images/logo.svg" class="logo" alt="로고 이미지">
+      <p class="logo_description">가장 아름다운 순간을 기록하세요.</p>
     </div>
 
     <div class="tabs" role="tablist" aria-label="로그인 또는 회원가입 선택">
-      <button class="tab active" id="tab-login" role="tab" aria-selected="true" aria-controls="pane-login">로그인</button>
-      <button class="tab" id="tab-signup" role="tab" aria-selected="false" aria-controls="pane-signup">회원가입</button>
+      <button class="tab active" id="tab_login" role="tab" aria-selected="true" aria-controls="pane_login">로그인</button>
+      <button class="tab" id="tab_signup" role="tab" aria-selected="false" aria-controls="pane_signup">회원가입</button>
     </div>
 
     <div class="panes">
 
       <!-- LOGIN PANE -->
-      <section class="pane active" id="pane-login" role="tabpanel" aria-labelledby="tab-login">
+      <section class="pane active" id="pane_login" role="tabpanel" aria-labelledby="tab_login">
         <div class="eyebrow">Partner Login</div>
-        <h2 class="heading">파트너센터</h2>
+        <h2 class="heading">웨딩홀 업체 로그인</h2>
 
-        <form id="form-login" novalidate>
+        <form id="form_login" novalidate>
           <div class="field">
-            <label for="login-email">담당자 이메일</label>
-            <div class="input-wrap">
-              <input type="email" id="login-email" name="email" placeholder="business@example.com" autocomplete="email" required>
-            </div>
-            <div class="hint" id="login-email-hint"></div>
+            <label for="login_email">이메일</label>
+            <input type="email" id="login_email" name="email" placeholder="business@example.com" autocomplete="email" required>
+            <div class="hint" id="login_email_hint"></div>
           </div>
 
           <div class="field">
-            <label for="login-password">비밀번호</label>
-            <div class="input-wrap">
-              <input type="password" id="login-password" name="password" placeholder="비밀번호 입력" autocomplete="current-password" required>
-              <button type="button" class="toggle-pw" data-target="login-password" aria-label="비밀번호 표시">
+            <label for="login_password">비밀번호</label>
+            <div class="input_row">
+              <input type="password" id="login_password" name="password" placeholder="비밀번호 입력" autocomplete="current-password" required>
+              <button type="button" class="toggle_pw" data-target="login_password" aria-label="비밀번호 표시">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
-            <div class="hint" id="login-password-hint"></div>
+            <div class="hint" id="login_password_hint"></div>
           </div>
 
-          <div class="row-between" style="justify-content:flex-end;">
-            <a href="#" class="link-muted" id="forgot-password-link">비밀번호를 잊으셨나요?</a>
+          <div class="row_end">
+            <a href="#" class="link_muted" id="forgot_password_link">비밀번호를 잊으셨나요?</a>
           </div>
 
-          <button type="submit" class="btn-primary">로그인</button>
+          <button type="submit" class="btn_primary">로그인</button>
         </form>
       </section>
 
       <!-- SIGNUP PANE -->
-      <section class="pane" id="pane-signup" role="tabpanel" aria-labelledby="tab-signup">
+      <section class="pane" id="pane_signup" role="tabpanel" aria-labelledby="tab_signup">
         <div class="eyebrow">Partner Sign Up</div>
-        <h2 class="heading">파트너 등록</h2>
+        <h2 class="heading">웨딩홀 업체 등록</h2>
 
-        <form id="form-signup" novalidate>
+        <form id="form_signup" novalidate>
           <div class="field">
-            <label for="signup-company">업체명 (상호)</label>
-            <div class="input-wrap">
-              <input type="text" id="signup-company" name="company" placeholder="예: 스냅앤보우 스튜디오" autocomplete="organization" required>
-            </div>
+            <label for="signup_company">업체명</label>
+            <input type="text" id="signup_company" name="company" placeholder="보우 스튜디오" autocomplete="organization" required>
+            <div class="hint" id="signup_company_hint"></div>
           </div>
 
           <div class="field">
-            <label for="signup-biznum">사업자등록번호</label>
-            <div class="input-wrap">
-              <input type="text" id="signup-biznum" name="biznum" placeholder="000-00-00000" inputmode="numeric" required>
-            </div>
-            <div class="hint" id="signup-biznum-hint"></div>
+            <label for="signup_name">이름</label>
+            <input type="text" id="signup_name" name="name" placeholder="보우" autocomplete="name" required>
+            <div class="hint" id="signup_name_hint"></div>
           </div>
 
           <div class="field">
-            <label for="signup-name">담당자 이름</label>
-            <div class="input-wrap">
-              <input type="text" id="signup-name" name="name" placeholder="담당자 성함" autocomplete="name" required>
-            </div>
+            <label for="signup_phone">연락처</label>
+            <input type="tel" id="signup_phone" name="phone" placeholder="010-0000-0000" autocomplete="tel" inputmode="numeric" maxlength="13" required>
+            <div class="hint" id="signup_phone_hint"></div>
           </div>
 
           <div class="field">
-            <label for="signup-phone">담당자 연락처</label>
-            <div class="input-wrap">
-              <input type="tel" id="signup-phone" name="phone" placeholder="010-0000-0000" autocomplete="tel" required>
-            </div>
+            <label for="signup_email">이메일</label>
+            <input type="email" id="signup_email" name="email" placeholder="business@example.com" autocomplete="email" required>
+            <div class="hint" id="signup_email_hint"></div>
           </div>
 
           <div class="field">
-            <label for="signup-email">이메일</label>
-            <div class="input-wrap">
-              <input type="email" id="signup-email" name="email" placeholder="business@example.com" autocomplete="email" required>
-            </div>
-            <div class="hint" id="signup-email-hint"></div>
-          </div>
-
-          <div class="field">
-            <label for="signup-password">비밀번호</label>
-            <div class="input-wrap">
-              <input type="password" id="signup-password" name="password" placeholder="8자 이상 입력" autocomplete="new-password" required minlength="8">
-              <button type="button" class="toggle-pw" data-target="signup-password" aria-label="비밀번호 표시">
+            <label for="signup_password">비밀번호</label>
+            <div class="input_row">
+              <input type="password" id="signup_password" name="password" placeholder="8자 이상 입력" autocomplete="new-password" required minlength="8">
+              <button type="button" class="toggle_pw" data-target="signup_password" aria-label="비밀번호 표시">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
-            <div class="hint" id="signup-password-hint"></div>
+            <div class="hint" id="signup_password_hint"></div>
           </div>
 
           <div class="field">
-            <label for="signup-password2">비밀번호 확인</label>
-            <div class="input-wrap">
-              <input type="password" id="signup-password2" name="password2" placeholder="비밀번호 다시 입력" autocomplete="new-password" required>
-              <button type="button" class="toggle-pw" data-target="signup-password2" aria-label="비밀번호 표시">
+            <label for="signup_password_confirm">비밀번호 확인</label>
+            <div class="input_row">
+              <input type="password" id="signup_password_confirm" name="passwordConfirm" placeholder="비밀번호 다시 입력" autocomplete="new-password" required>
+              <button type="button" class="toggle_pw" data-target="signup_password_confirm" aria-label="비밀번호 표시">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
-            <div class="hint" id="signup-password2-hint"></div>
+            <div class="hint" id="signup_password_confirm_hint"></div>
           </div>
 
           <p class="terms">
-            <label class="check" style="align-items:flex-start;">
-              <input type="checkbox" name="agree" required style="margin-top:2px;">
-              <span><a href="#" class="terms-link">이용약관 및 개인정보 처리방침에 동의합니다.</a></span>
+            <label class="check">
+              <input type="checkbox" name="agree" required>
+              <span><a href="#" class="terms_link">이용약관 및 개인정보 처리방침에 동의합니다.</a></span>
             </label>
           </p>
 
-          <button type="submit" class="btn-primary">가입하기</button>
+          <button type="submit" class="btn_primary">가입하기</button>
         </form>
       </section>
 
     </div>
   </div>
-</div>
+</section>
 </body>
 </html>
