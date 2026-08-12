@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteField,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { auth, db } from './firebase.js';
@@ -163,6 +164,12 @@ function initFrontend(){
         setHint('login_password_hint','아직 관리자 승인 대기 중이에요. 승인 완료 후 다시 로그인해주세요.');
         return;
       }
+
+      // 새 로그인 세션 시작 시 이전에 등록했던 예식 정보는 초기화
+      await setDoc(doc(db, 'member', cred.user.uid), {
+        coupleNames: deleteField(),
+        weddingDate: deleteField()
+      }, { merge: true });
 
       window.location.href = 'pages/register.html';
     }catch(err){
