@@ -63,6 +63,7 @@
 
       <!-- SIGNUP PANE -->
       <section class="tab_panel" id="pane_signup" role="tabpanel" aria-labelledby="auth_tab_signup">
+        <div id="signup_form_view">
         <div class="eyebrow">Partner Sign Up</div>
         <h2 class="heading">웨딩홀 업체 등록</h2>
 
@@ -122,6 +123,14 @@
 
           <button type="submit" class="btn_primary">가입하기</button>
         </form>
+        </div>
+
+        <div id="signup_success_view" hidden>
+          <div class="eyebrow">Pending approval</div>
+          <h2 class="heading">가입 신청이 접수됐어요</h2>
+          <p class="subheading" id="signup_success_message"></p>
+          <button type="button" class="btn_primary" id="go_to_login_after_signup">로그인 화면으로</button>
+        </div>
       </section>
 
     </div>

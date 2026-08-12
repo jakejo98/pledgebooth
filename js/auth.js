@@ -51,6 +51,10 @@ function initFrontend(){
   const tabSignup = document.getElementById('auth_tab_signup');
   const paneLogin = document.getElementById('pane_login');
   const paneSignup = document.getElementById('pane_signup');
+  const signupFormView = document.getElementById('signup_form_view');
+  const signupSuccessView = document.getElementById('signup_success_view');
+  const signupSuccessMessage = document.getElementById('signup_success_message');
+  document.getElementById('go_to_login_after_signup').addEventListener('click', ()=> showLogin());
 
   const loginHintIds = ['login_email_hint', 'login_password_hint'];
   const signupHintIds = ['signup_company_hint', 'signup_name_hint', 'signup_phone_hint', 'signup_email_hint', 'signup_password_hint', 'signup_password_confirm_hint'];
@@ -67,6 +71,8 @@ function initFrontend(){
     tabSignup.classList.add('active'); tabSignup.setAttribute('aria-selected','true');
     tabLogin.classList.remove('active'); tabLogin.setAttribute('aria-selected','false');
     paneSignup.classList.add('active'); paneLogin.classList.remove('active');
+    signupSuccessView.hidden = true;
+    signupFormView.hidden = false;
     signupForm.reset();
     clearHints(signupHintIds);
   }
@@ -225,16 +231,14 @@ function initFrontend(){
     }
   });
 
-  // 가입 완료 안내: 폼을 관리자 승인 대기 메시지로 교체
+  // 가입 완료 안내: 폼을 숨기고 관리자 승인 대기 메시지를 보여줌
   function showSignupSuccess(email){
-    const pane = document.getElementById('pane_signup');
-    pane.innerHTML = `
-      <div class="eyebrow">Pending approval</div>
-      <h2 class="heading">가입 신청이 접수됐어요</h2>
-      <p class="subheading"><strong>${email}</strong> 계정은 관리자 승인 후 로그인할 수 있어요. 승인이 완료되면 안내해드릴게요.</p>
-      <button type="button" class="btn_primary" id="go_to_login_after_signup">로그인 화면으로</button>
-    `;
-    document.getElementById('go_to_login_after_signup').addEventListener('click', showLogin);
+    signupFormView.hidden = true;
+    signupSuccessView.hidden = false;
+    signupSuccessMessage.replaceChildren();
+    const strong = document.createElement('strong');
+    strong.textContent = email;
+    signupSuccessMessage.append(strong, ' 계정은 관리자 승인 후 로그인할 수 있어요. 승인이 완료되면 안내해드릴게요.');
   }
 }
 
