@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/reset.css">
 <link rel="stylesheet" href="css/common.css">
 <link rel="stylesheet" href="css/auth.css">
+<link rel="stylesheet" href="css/modal.css">
 <script type="module" src="js/auth.js"></script>
 </head>
 <body>
@@ -22,15 +23,15 @@
       <p class="logo_description">가장 아름다운 순간을 기록하세요.</p>
     </div>
 
-    <div class="tabs" role="tablist" aria-label="로그인 또는 회원가입 선택">
-      <button class="tab active" id="tab_login" role="tab" aria-selected="true" aria-controls="pane_login">로그인</button>
-      <button class="tab" id="tab_signup" role="tab" aria-selected="false" aria-controls="pane_signup">회원가입</button>
+    <div class="auth_tabs" role="tablist" aria-label="로그인 또는 회원가입 선택">
+      <button class="auth_tab active" id="auth_tab_login" role="tab" aria-selected="true" aria-controls="pane_login">로그인</button>
+      <button class="auth_tab" id="auth_tab_signup" role="tab" aria-selected="false" aria-controls="pane_signup">회원가입</button>
     </div>
 
-    <div class="panes">
+    <div class="tab_panels">
 
       <!-- LOGIN PANE -->
-      <section class="pane active" id="pane_login" role="tabpanel" aria-labelledby="tab_login">
+      <section class="tab_panel active" id="pane_login" role="tabpanel" aria-labelledby="auth_tab_login">
         <div class="eyebrow">Partner Login</div>
         <h2 class="heading">웨딩홀 업체 로그인</h2>
 
@@ -61,7 +62,7 @@
       </section>
 
       <!-- SIGNUP PANE -->
-      <section class="pane" id="pane_signup" role="tabpanel" aria-labelledby="tab_signup">
+      <section class="tab_panel" id="pane_signup" role="tabpanel" aria-labelledby="auth_tab_signup">
         <div class="eyebrow">Partner Sign Up</div>
         <h2 class="heading">웨딩홀 업체 등록</h2>
 
@@ -126,5 +127,8 @@
     </div>
   </div>
 </section>
+
+<div id="modal_root"></div>
+
 </body>
 </html>

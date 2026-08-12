@@ -1,6 +1,7 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import {
@@ -12,6 +13,32 @@ import {
 import { auth, db } from './firebase.js';
 // Storage(로고 업로드)는 일시 제외 — 필요해질 때 firebase-storage.js를 다시 import하세요.
 
+// Firebase Auth 에러 코드를 한국어 메시지로 변환
+function authErrorMessage(err){
+  const code = err && err.code ? err.code : '';
+  switch(code){
+    case 'auth/email-already-in-use': return '이미 가입된 이메일이에요.';
+    case 'auth/invalid-email': return '이메일 형식이 올바르지 않아요.';
+    case 'auth/weak-password': return '비밀번호가 너무 약해요. 8자 이상으로 설정해주세요.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential': return '이메일 또는 비밀번호가 일치하지 않아요.';
+    case 'auth/too-many-requests': return '시도 횟수가 많아 잠시 후 다시 시도해주세요.';
+    default: return '오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+  }
+}
+
+// 모달이 열려있는 동안 배경 스크롤 막기 (모달이 여러 개 겹쳐도 안전하도록 카운트로 관리)
+let openModalCount = 0;
+function lockScroll(){
+  openModalCount++;
+  document.body.style.overflow = 'hidden';
+}
+function unlockScroll(){
+  openModalCount = Math.max(0, openModalCount - 1);
+  if(openModalCount === 0) document.body.style.overflow = '';
+}
+
 // ════════════════════════════════════════════════════════════
 // 프론트엔드 로직: 탭 전환, 폼 검증, 로그인/회원가입 화면 동작
 // ════════════════════════════════════════════════════════════
@@ -20,20 +47,28 @@ function initFrontend(){
   // ────────────────────────────────────────────────────────
   // 탭 전환
   // ────────────────────────────────────────────────────────
-  const tabLogin = document.getElementById('tab_login');
-  const tabSignup = document.getElementById('tab_signup');
+  const tabLogin = document.getElementById('auth_tab_login');
+  const tabSignup = document.getElementById('auth_tab_signup');
   const paneLogin = document.getElementById('pane_login');
   const paneSignup = document.getElementById('pane_signup');
+
+  const loginHintIds = ['login_email_hint', 'login_password_hint'];
+  const signupHintIds = ['signup_company_hint', 'signup_name_hint', 'signup_phone_hint', 'signup_email_hint', 'signup_password_hint', 'signup_password_confirm_hint'];
+  function clearHints(hintIds){ hintIds.forEach(id=> setHint(id, '')); }
 
   function showLogin(){
     tabLogin.classList.add('active'); tabLogin.setAttribute('aria-selected','true');
     tabSignup.classList.remove('active'); tabSignup.setAttribute('aria-selected','false');
     paneLogin.classList.add('active'); paneSignup.classList.remove('active');
+    loginForm.reset();
+    clearHints(loginHintIds);
   }
   function showSignup(){
     tabSignup.classList.add('active'); tabSignup.setAttribute('aria-selected','true');
     tabLogin.classList.remove('active'); tabLogin.setAttribute('aria-selected','false');
     paneSignup.classList.add('active'); paneLogin.classList.remove('active');
+    signupForm.reset();
+    clearHints(signupHintIds);
   }
   tabLogin.addEventListener('click', showLogin);
   tabSignup.addEventListener('click', showSignup);
@@ -91,21 +126,6 @@ function initFrontend(){
     btn.textContent = loading ? labelLoading : labelDefault;
     btn.style.opacity = loading ? '0.7' : '1';
     btn.style.cursor = loading ? 'not-allowed' : 'pointer';
-  }
-
-  // Firebase Auth 에러 코드를 한국어 메시지로 변환
-  function authErrorMessage(err){
-    const code = err && err.code ? err.code : '';
-    switch(code){
-      case 'auth/email-already-in-use': return '이미 가입된 이메일이에요.';
-      case 'auth/invalid-email': return '이메일 형식이 올바르지 않아요.';
-      case 'auth/weak-password': return '비밀번호가 너무 약해요. 8자 이상으로 설정해주세요.';
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential': return '이메일 또는 비밀번호가 일치하지 않아요.';
-      case 'auth/too-many-requests': return '시도 횟수가 많아 잠시 후 다시 시도해주세요.';
-      default: return '오류가 발생했어요. 잠시 후 다시 시도해주세요.';
-    }
   }
 
   // ────────────────────────────────────────────────────────
@@ -218,4 +238,112 @@ function initFrontend(){
   }
 }
 
+// ════════════════════════════════════════════════════════════
+// 비밀번호 재설정 모달: 프래그먼트를 불러와 삽입하고 동작을 연결
+// ════════════════════════════════════════════════════════════
+async function initResetPasswordModal(){
+  const forgotLink = document.getElementById('forgot_password_link');
+  const modalRoot = document.getElementById('modal_root');
+
+  const res = await fetch('assets/modal/reset-password-modal.html');
+  modalRoot.insertAdjacentHTML('beforeend', await res.text());
+
+  const overlay = document.getElementById('reset_modal_overlay');
+  const closeBtn = document.getElementById('reset_modal_close');
+  const form = document.getElementById('form_reset_password');
+  const emailInput = document.getElementById('reset_email');
+  const emailHint = document.getElementById('reset_email_hint');
+  const submitBtn = document.getElementById('reset_submit');
+  const successMsg = document.getElementById('reset_success_msg');
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function setHint(msg){ emailHint.textContent = msg || ''; }
+
+  function openModal(){
+    form.hidden = false;
+    successMsg.hidden = true;
+    form.reset();
+    setHint('');
+    overlay.hidden = false;
+    lockScroll();
+    emailInput.focus();
+  }
+  function closeModal(){ overlay.hidden = true; unlockScroll(); }
+
+  forgotLink.addEventListener('click', (e)=>{
+    e.preventDefault();
+    openModal();
+  });
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && !overlay.hidden) closeModal();
+  });
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    if(!emailRe.test(email)){
+      setHint('올바른 이메일 주소를 입력해주세요.');
+      emailInput.focus();
+      return;
+    }
+    setHint('');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '발송 중...';
+    try{
+      const actionCodeSettings = {
+        url: new URL('pages/reset-password.html', window.location.href).toString(),
+        handleCodeInApp: true
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      form.hidden = true;
+      successMsg.hidden = false;
+    }catch(err){
+      console.error('sendPasswordResetEmail failed:', err);
+      const code = err && err.code ? err.code : '';
+      setHint(code === 'auth/user-not-found' ? '가입되지 않은 이메일이에요.' : authErrorMessage(err));
+    }finally{
+      submitBtn.disabled = false;
+      submitBtn.textContent = '재설정 링크 보내기';
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// 이용약관 및 개인정보 처리방침 모달: 프래그먼트를 불러와 삽입하고 동작을 연결
+// ════════════════════════════════════════════════════════════
+async function initPrivacyModal(){
+  const termsLink = document.querySelector('.terms_link');
+  const modalRoot = document.getElementById('modal_root');
+
+  const res = await fetch('assets/modal/privacy-modal.html');
+  modalRoot.insertAdjacentHTML('beforeend', await res.text());
+
+  const overlay = document.getElementById('privacy_modal_overlay');
+  const closeBtn = document.getElementById('privacy_modal_close');
+  const confirmBtn = document.getElementById('privacy_modal_confirm');
+
+  function openModal(){ overlay.hidden = false; lockScroll(); }
+  function closeModal(){ overlay.hidden = true; unlockScroll(); }
+
+  termsLink.addEventListener('click', (e)=>{
+    e.preventDefault();
+    openModal();
+  });
+  closeBtn.addEventListener('click', closeModal);
+  confirmBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && !overlay.hidden) closeModal();
+  });
+}
+
 initFrontend();
+initResetPasswordModal();
+initPrivacyModal();

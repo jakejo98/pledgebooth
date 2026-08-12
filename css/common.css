@@ -121,11 +121,5 @@ form{ display:flex; flex-direction:column; gap:20px; }
   letter-spacing:0.02em;
   cursor:pointer;
   box-shadow:0 10px 24px rgba(157,124,24,0.28);
-  transition:transform 0.15s ease, box-shadow 0.15s ease;
-}
-.btn_primary:hover{ transform:translateY(-1px); box-shadow:0 14px 28px rgba(157,124,24,0.34); }
-.btn_primary:active{ transform:translateY(0); }
 
-@media (prefers-reduced-motion: reduce){
-  *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
 }
