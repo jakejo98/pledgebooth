@@ -41,7 +41,7 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
-  const memberSnap = await getDoc(doc(db, 'member', user.uid));
+  const memberSnap = await getDoc(doc(db, 'user_account_list', user.uid));
   const data = memberSnap.exists() ? memberSnap.data() : null;
 
   if(!data || data.status !== '인증'){

@@ -42,6 +42,8 @@
   display:flex; align-items:center;
 }
 .input_row .toggle_pw svg{ width:18px; height:18px; }
+.input_row .toggle_pw .eye_slash{ display:none; }
+.input_row .toggle_pw.is_visible .eye_slash{ display:inline; }
 
 .row_end{
   display:flex;
@@ -63,6 +65,10 @@
 .link_muted{
   color:var(--gold-dark);
   text-decoration:none;
+}
+.link_divider{
+  margin:0 8px;
+  color:var(--ink-soft);
 }
 
 .terms{

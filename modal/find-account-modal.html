@@ -1,0 +1,29 @@
+<div class="modal_overlay" id="find_modal_overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="find_modal_title">
+    <button type="button" class="modal_close" id="find_modal_close" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+
+    <div class="eyebrow">Find Account</div>
+    <h2 class="heading" id="find_modal_title">계정 찾기</h2>
+    <p class="subheading">가입할 때 입력하신 이름과 연락처로 가입된 이메일을 찾아드려요.</p>
+
+    <form id="form_find_account" novalidate>
+      <div class="field">
+        <label for="find_name">이름</label>
+        <input type="text" id="find_name" name="findName" placeholder="담당자 이름" autocomplete="name" required>
+        <div class="hint" id="find_name_hint"></div>
+      </div>
+
+      <div class="field">
+        <label for="find_phone">연락처</label>
+        <input type="tel" id="find_phone" name="findPhone" placeholder="010-0000-0000" autocomplete="tel" required>
+        <div class="hint" id="find_phone_hint"></div>
+      </div>
+
+      <button type="submit" class="btn_primary" id="find_submit">계정 찾기</button>
+    </form>
+
+    <p class="modal_success" id="find_success_msg" hidden></p>
+  </div>
+</div>

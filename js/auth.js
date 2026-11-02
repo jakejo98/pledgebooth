@@ -14,6 +14,34 @@ import {
 import { auth, db } from './firebase.js';
 // Storage(로고 업로드)는 일시 제외 — 필요해질 때 firebase-storage.js를 다시 import하세요.
 
+// 연락처 입력 시 자동으로 하이픈(-)을 넣어줍니다. 예: 01012345678 → 010-1234-5678
+function formatPhoneNumber(value){
+  const digits = value.replace(/[^0-9]/g, '').slice(0, 11);
+  if(digits.length < 4) return digits;
+  if(digits.length < 8) return `${digits.slice(0,3)}-${digits.slice(3)}`;
+  return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+}
+
+// 계정 찾기용 조회 키: 이름 + 연락처(숫자만)의 SHA-256. 원문은 저장하지 않음
+async function accountLookupKey(name, phone){
+  const raw = `${name.trim()}:${phone.replace(/\D/g, '')}`;
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 계정 찾기 기능 추가 전에 가입한 회원은 조회 문서가 없으므로, 로그인 시 없으면 만들어 줌
+async function ensureAccountLookup(uid, member){
+  if(!member.name || !member.phone || !member.email) return;
+  try{
+    const lookupRef = doc(db, 'find_user_account', await accountLookupKey(member.name, member.phone));
+    const lookupSnap = await getDoc(lookupRef);
+    if(lookupSnap.exists() && lookupSnap.data().email) return;
+    await setDoc(lookupRef, { uid, email: member.email });
+  }catch(err){
+    console.error('find_user_account backfill failed:', err);
+  }
+}
+
 // Firebase Auth 에러 코드를 한국어 메시지로 변환
 function authErrorMessage(err){
   const code = err && err.code ? err.code : '';
@@ -84,7 +112,10 @@ function initFrontend(){
   document.querySelectorAll('.toggle_pw').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const target = document.getElementById(btn.dataset.target);
-      target.type = target.type === 'password' ? 'text' : 'password';
+      const show = target.type === 'password';
+      target.type = show ? 'text' : 'password';
+      btn.classList.toggle('is_visible', show);
+      btn.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 표시');
     });
   });
 
@@ -97,14 +128,6 @@ function initFrontend(){
   // ────────────────────────────────────────────────────────
   function setHint(id, msg){ document.getElementById(id).textContent = msg || ''; }
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  // 연락처 입력 시 자동으로 하이픈(-)을 넣어줍니다. 예: 01012345678 → 010-1234-5678
-  function formatPhoneNumber(value){
-    const digits = value.replace(/[^0-9]/g, '').slice(0, 11);
-    if(digits.length < 4) return digits;
-    if(digits.length < 8) return `${digits.slice(0,3)}-${digits.slice(3)}`;
-    return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
-  }
 
   const signupPhoneInput = document.getElementById('signup_phone');
   signupPhoneInput.addEventListener('input', (e)=>{
@@ -156,8 +179,9 @@ function initFrontend(){
       const cred = await signInWithEmailAndPassword(auth, email, pw);
 
       // 관리자가 Firestore에서 status를 '인증'으로 바꿔준 계정만 로그인 허용
-      const partnerSnap = await getDoc(doc(db, 'member', cred.user.uid));
+      const partnerSnap = await getDoc(doc(db, 'user_account_list', cred.user.uid));
       const status = partnerSnap.exists() ? partnerSnap.data().status : null;
+      if(partnerSnap.exists()) await ensureAccountLookup(cred.user.uid, partnerSnap.data());
 
       if(status !== '인증'){
         await signOut(auth);
@@ -166,7 +190,7 @@ function initFrontend(){
       }
 
       // 새 로그인 세션 시작 시 이전에 등록했던 예식 정보는 초기화
-      await setDoc(doc(db, 'member', cred.user.uid), {
+      await setDoc(doc(db, 'user_account_list', cred.user.uid), {
         coupleNames: deleteField(),
         weddingDate: deleteField()
       }, { merge: true });
@@ -216,7 +240,7 @@ function initFrontend(){
       // 2) 업체 정보 Firestore에 저장
       //    로고 업로드(Storage)는 일시 제외했습니다. 나중에 Blaze로 업그레이드하면
       //    firebase-storage.js를 다시 import하고 이 자리에 업로드 로직을 추가하세요.
-      await setDoc(doc(db, 'member', uid), {
+      await setDoc(doc(db, 'user_account_list', uid), {
         company,
         name,
         phone,
@@ -225,6 +249,16 @@ function initFrontend(){
         status: '미인증',      // 관리자가 Firestore 콘솔에서 '인증'으로 바꿔주면 로그인 가능
         createdAt: serverTimestamp()
       });
+
+      // 2-1) 계정 찾기용 조회 문서 저장 (실패해도 가입 자체는 진행)
+      try{
+        await setDoc(doc(db, 'find_user_account', await accountLookupKey(name, phone)), {
+          uid,
+          email
+        });
+      }catch(err){
+        console.error('find_user_account write failed:', err);
+      }
 
       // 3) 가입 직후에는 아직 승인 전이므로 로그아웃 상태로 대기 안내
       await signOut(auth);
@@ -256,7 +290,7 @@ async function initResetPasswordModal(){
   const forgotLink = document.getElementById('forgot_password_link');
   const modalRoot = document.getElementById('modal_root');
 
-  const res = await fetch('assets/modal/reset-password-modal.html');
+  const res = await fetch('modal/reset-password-modal.html');
   modalRoot.insertAdjacentHTML('beforeend', await res.text());
 
   const overlay = document.getElementById('reset_modal_overlay');
@@ -331,7 +365,7 @@ async function initPrivacyModal(){
   const termsLink = document.querySelector('.terms_link');
   const modalRoot = document.getElementById('modal_root');
 
-  const res = await fetch('assets/modal/privacy-modal.html');
+  const res = await fetch('modal/privacy-modal.html');
   modalRoot.insertAdjacentHTML('beforeend', await res.text());
 
   const overlay = document.getElementById('privacy_modal_overlay');
@@ -355,6 +389,90 @@ async function initPrivacyModal(){
   });
 }
 
+// ════════════════════════════════════════════════════════════
+// 계정 찾기 모달: 이름 + 연락처로 가입된 이메일을 조회
+// ════════════════════════════════════════════════════════════
+async function initFindAccountModal(){
+  const findLink = document.getElementById('find_account_link');
+  const modalRoot = document.getElementById('modal_root');
+
+  const res = await fetch('modal/find-account-modal.html');
+  modalRoot.insertAdjacentHTML('beforeend', await res.text());
+
+  const overlay = document.getElementById('find_modal_overlay');
+  const closeBtn = document.getElementById('find_modal_close');
+  const form = document.getElementById('form_find_account');
+  const nameInput = document.getElementById('find_name');
+  const phoneInput = document.getElementById('find_phone');
+  const nameHint = document.getElementById('find_name_hint');
+  const phoneHint = document.getElementById('find_phone_hint');
+  const submitBtn = document.getElementById('find_submit');
+  const successMsg = document.getElementById('find_success_msg');
+
+  function openModal(){
+    form.hidden = false;
+    successMsg.hidden = true;
+    form.reset();
+    nameHint.textContent = '';
+    phoneHint.textContent = '';
+    overlay.hidden = false;
+    lockScroll();
+    nameInput.focus();
+  }
+  function closeModal(){ overlay.hidden = true; unlockScroll(); }
+
+  findLink.addEventListener('click', (e)=>{
+    e.preventDefault();
+    openModal();
+  });
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay) closeModal();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && !overlay.hidden) closeModal();
+  });
+
+  phoneInput.addEventListener('input', (e)=>{
+    e.target.value = formatPhoneNumber(e.target.value);
+  });
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+
+    let ok = true;
+    if(!name){ nameHint.textContent = '이름을 입력해주세요.'; ok = false; } else nameHint.textContent = '';
+    if(phone.replace(/\D/g, '').length < 9){ phoneHint.textContent = '올바른 연락처를 입력해주세요.'; ok = false; } else phoneHint.textContent = '';
+    successMsg.hidden = true;
+    if(!ok) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '찾는 중...';
+    try{
+      const snap = await getDoc(doc(db, 'find_user_account', await accountLookupKey(name, phone)));
+      if(!snap.exists()){
+        phoneHint.textContent = '일치하는 계정이 없어요. 이름과 연락처를 확인해주세요.';
+        return;
+      }
+      successMsg.replaceChildren();
+      const strong = document.createElement('strong');
+      // 아직 새 형식으로 바뀌지 않은 문서는 예전에 저장한 maskedEmail로 표시
+      strong.textContent = snap.data().email || snap.data().maskedEmail;
+      successMsg.append('가입된 이메일은 ', strong, ' 이에요.');
+      successMsg.hidden = false;
+    }catch(err){
+      console.error('find account failed:', err);
+      phoneHint.textContent = '오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+    }finally{
+      submitBtn.disabled = false;
+      submitBtn.textContent = '계정 찾기';
+    }
+  });
+}
+
 initFrontend();
 initResetPasswordModal();
 initPrivacyModal();
+initFindAccountModal();

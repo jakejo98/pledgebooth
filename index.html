@@ -47,14 +47,16 @@
             <div class="input_row">
               <input type="password" id="login_password" name="password" placeholder="비밀번호 입력" autocomplete="current-password" required>
               <button type="button" class="toggle_pw" data-target="login_password" aria-label="비밀번호 표시">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="eye_slash" d="M3 3l18 18"/></svg>
               </button>
             </div>
             <div class="hint" id="login_password_hint"></div>
           </div>
 
           <div class="row_end">
-            <a href="#" class="link_muted" id="forgot_password_link">비밀번호를 잊으셨나요?</a>
+            <a href="#" class="link_muted" id="find_account_link">계정 찾기</a>
+            <span class="link_divider" aria-hidden="true">|</span>
+            <a href="#" class="link_muted" id="forgot_password_link">비밀번호 찾기</a>
           </div>
 
           <button type="submit" class="btn_primary">로그인</button>
@@ -97,7 +99,7 @@
             <div class="input_row">
               <input type="password" id="signup_password" name="password" placeholder="8자 이상 입력" autocomplete="new-password" required minlength="8">
               <button type="button" class="toggle_pw" data-target="signup_password" aria-label="비밀번호 표시">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="eye_slash" d="M3 3l18 18"/></svg>
               </button>
             </div>
             <div class="hint" id="signup_password_hint"></div>
@@ -108,7 +110,7 @@
             <div class="input_row">
               <input type="password" id="signup_password_confirm" name="passwordConfirm" placeholder="비밀번호 다시 입력" autocomplete="new-password" required>
               <button type="button" class="toggle_pw" data-target="signup_password_confirm" aria-label="비밀번호 표시">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="eye_slash" d="M3 3l18 18"/></svg>
               </button>
             </div>
             <div class="hint" id="signup_password_confirm_hint"></div>

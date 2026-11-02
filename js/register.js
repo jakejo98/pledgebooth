@@ -41,7 +41,7 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
-  const memberSnap = await getDoc(doc(db, 'member', user.uid));
+  const memberSnap = await getDoc(doc(db, 'user_account_list', user.uid));
   const status = memberSnap.exists() ? memberSnap.data().status : null;
 
   if(status !== '인증'){
@@ -65,7 +65,7 @@ logoutBtn.addEventListener('click', async ()=>{
   logoutBtn.disabled = true;
   try{
     if(currentUid){
-      await setDoc(doc(db, 'member', currentUid), {
+      await setDoc(doc(db, 'user_account_list', currentUid), {
         coupleNames: deleteField(),
         weddingDate: deleteField()
       }, { merge: true });
@@ -90,7 +90,7 @@ form.addEventListener('submit', async (e)=>{
 
   setLoading(submitBtn, true, '포토 스튜디오 입장하기', '저장 중...');
   try{
-    await setDoc(doc(db, 'member', currentUid), {
+    await setDoc(doc(db, 'user_account_list', currentUid), {
       coupleNames,
       weddingDate,
       updatedAt: serverTimestamp()

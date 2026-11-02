@@ -80,6 +80,7 @@ body{
 }
 
 form{ display:flex; flex-direction:column; gap:20px; }
+form[hidden]{ display:none; }
 
 .field label{
   display:block;
