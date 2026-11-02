@@ -3,13 +3,13 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-aut
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB3NOU4NVTnCMgY4MKIfs35C8YJmLKnxtU",
-  authDomain: "pledge-64ff2.firebaseapp.com",
-  projectId: "pledge-64ff2",
-  storageBucket: "pledge-64ff2.firebasestorage.app",
-  messagingSenderId: "1041161676115",
-  appId: "1:1041161676115:web:d2fe2c6986480e08812da6",
-  measurementId: "G-GMRNJWF26H"
+  apiKey: "AIzaSyAbRFyZRgQA1j9rPpH3J5RLnrKiEqMpnNk",
+  authDomain: "pledgebooth.firebaseapp.com",
+  projectId: "pledgebooth",
+  storageBucket: "pledgebooth.firebasestorage.app",
+  messagingSenderId: "107105826061",
+  appId: "1:107105826061:web:9062460509c2cdc70b6c44",
+  measurementId: "G-R0B27XSD6M"
 };
 
 const app = initializeApp(firebaseConfig);

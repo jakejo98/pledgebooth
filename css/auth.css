@@ -38,12 +38,13 @@
   position:absolute;
   right:12px; top:50%; transform:translateY(-50%);
   background:none; border:none; cursor:pointer;
-  color:var(--ink-soft); padding:4px;
+  color:var(--ink-soft); padding:0;
   display:flex; align-items:center;
 }
-.input_row .toggle_pw svg{ width:18px; height:18px; }
-.input_row .toggle_pw .eye_slash{ display:none; }
-.input_row .toggle_pw.is_visible .eye_slash{ display:inline; }
+.input_row .toggle_pw img{ width:24px; height:24px; }
+.input_row .toggle_pw .icon_pw_hide{ display:none; }
+.input_row .toggle_pw.is_visible .icon_pw_show{ display:none; }
+.input_row .toggle_pw.is_visible .icon_pw_hide{ display:block; }
 
 .row_end{
   display:flex;

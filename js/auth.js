@@ -330,22 +330,21 @@ async function initResetPasswordModal(){
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const email = emailInput.value.trim();
+    successMsg.hidden = true;
     if(!emailRe.test(email)){
       setHint('올바른 이메일 주소를 입력해주세요.');
-      emailInput.focus();
       return;
     }
     setHint('');
 
     submitBtn.disabled = true;
-    submitBtn.textContent = '발송 중...';
+    submitBtn.textContent = '찾는 중...';
     try{
       const actionCodeSettings = {
-        url: new URL('pages/reset-password.html', window.location.href).toString(),
+        url: new URL('index.html', window.location.href).toString(),
         handleCodeInApp: true
       };
       await sendPasswordResetEmail(auth, email, actionCodeSettings);
-      form.hidden = true;
       successMsg.hidden = false;
     }catch(err){
       console.error('sendPasswordResetEmail failed:', err);
@@ -353,7 +352,7 @@ async function initResetPasswordModal(){
       setHint(code === 'auth/user-not-found' ? '가입되지 않은 이메일이에요.' : authErrorMessage(err));
     }finally{
       submitBtn.disabled = false;
-      submitBtn.textContent = '재설정 링크 보내기';
+      submitBtn.textContent = '비밀번호 찾기';
     }
   });
 }
