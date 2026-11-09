@@ -2,6 +2,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { doc, getDoc, setDoc, deleteField, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { auth, db } from './firebase.js';
 import { formatDateDisplay } from './format.js';
+import { createDatePicker } from './calendar.js';
 
 const form = document.getElementById('form_register');
 const submitBtn = document.getElementById('register_submit');
@@ -9,19 +10,17 @@ const logoutBtn = document.getElementById('logout_btn');
 const coupleNamesInput = document.getElementById('couple_names');
 const weddingDateInput = document.getElementById('wedding_date');
 const weddingDateDisplay = document.getElementById('wedding_date_display');
+const dateField = document.getElementById('date_field');
 
 function setHint(id, msg){ document.getElementById(id).textContent = msg || ''; }
 
-weddingDateInput.addEventListener('change', ()=>{
-  weddingDateDisplay.value = formatDateDisplay(weddingDateInput.value);
-});
-
-// 표시용 필드는 클릭만 받고, 실제 달력은 숨겨진 네이티브 date input이 띄움
-weddingDateDisplay.addEventListener('click', ()=>{
-  try{
-    weddingDateInput.showPicker();
-  }catch(err){
-    weddingDateInput.focus();
+const datePicker = await createDatePicker({
+  container: dateField,
+  triggerEl: weddingDateDisplay,
+  hiddenInput: weddingDateInput,
+  onSelect: (isoDate)=>{
+    weddingDateDisplay.value = formatDateDisplay(isoDate);
+    setHint('wedding_date_hint', '');
   }
 });
 
@@ -57,6 +56,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(data.weddingDate){
     weddingDateInput.value = data.weddingDate;
     weddingDateDisplay.value = formatDateDisplay(data.weddingDate);
+    datePicker.setDate(data.weddingDate);
   }
 });
 

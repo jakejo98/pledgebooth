@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5EFE0">
+<title>Pledge - 프레임 & 필터</title>
+<link rel="icon" type="image/x-icon" href="../assets/favicon/favicon.ico">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@700&family=Playfair+Display:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../css/reset.css">
+<link rel="stylesheet" href="../css/photo-custom-step2.css">
+<script type="module" src="../js/photoCustom.js"></script>
+</head>
+<body class="custom_body">
+
+<div class="custom_stage">
+  <div class="custom_topbar">
+    <button type="button" class="back_btn" id="custom_back_btn" aria-label="뒤로가기">
+      <img src="../assets/icons/icon_prev.svg" width="24" height="24" alt="">
+    </button>
+    <button type="button" class="print_btn" id="custom_print_btn" aria-label="프린트">
+      <img src="../assets/icons/icon_print.svg" width="24" height="24" alt="">
+    </button>
+  </div>
+
+  <div class="custom_scroll">
+    <div class="custom_frame" id="custom_frame">
+      <div class="frame_brand" id="custom_brand"></div>
+
+      <div class="frame_slot"><img class="frame_slot_img" alt=""></div>
+      <div class="frame_slot"><img class="frame_slot_img" alt=""></div>
+      <div class="frame_slot"><img class="frame_slot_img" alt=""></div>
+      <div class="frame_slot"><img class="frame_slot_img" alt=""></div>
+
+      <div class="frame_caption">
+        <div class="frame_caption_names" id="custom_names"></div>
+        <div class="frame_caption_date" id="custom_date"></div>
+      </div>
+    </div>
+
+    <div class="custom_tabs" role="tablist">
+      <button type="button" class="custom_tab is_active" data-tab="frame" role="tab" aria-selected="true">프레임</button>
+      <button type="button" class="custom_tab" data-tab="filter" role="tab" aria-selected="false">필터</button>
+    </div>
+
+    <div class="custom_panel" data-panel="frame">
+      <div class="swatch_scroll" id="frame_style_row">
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_basic is_selected" data-frame="basic" aria-label="화이트"></button>
+          <span class="swatch_item_label">기본</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_mono" data-frame="mono" aria-label="블랙"></button>
+          <span class="swatch_item_label">블랙</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_gold" data-frame="gold" aria-label="골드"></button>
+          <span class="swatch_item_label">골드</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_blush" data-frame="blush" aria-label="블러쉬"></button>
+          <span class="swatch_item_label">블러쉬</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_rose" data-frame="rose" aria-label="로즈"></button>
+          <span class="swatch_item_label">로즈</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_sage" data-frame="sage" aria-label="세이지"></button>
+          <span class="swatch_item_label">세이지</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_champagne" data-frame="champagne" aria-label="샴페인"></button>
+          <span class="swatch_item_label">샴페인</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_lavender" data-frame="lavender" aria-label="라벤더"></button>
+          <span class="swatch_item_label">라벤더</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_navy" data-frame="navy" aria-label="네이비"></button>
+          <span class="swatch_item_label">네이비</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_terracotta" data-frame="terracotta" aria-label="테라코타"></button>
+          <span class="swatch_item_label">테라코타</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="custom_panel" data-panel="filter" hidden>
+      <div class="swatch_scroll" id="filter_row">
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_coolrose is_selected" data-filter="coolrose" aria-label="쿨 로즈"></button>
+          <span class="swatch_item_label">쿨 로즈</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_neutral" data-filter="neutral" aria-label="뉴트럴"></button>
+          <span class="swatch_item_label">뉴트럴</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_bright" data-filter="bright" aria-label="브라이트"></button>
+          <span class="swatch_item_label">브라이트</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_rosegold" data-filter="rosegold" aria-label="로즈 골드"></button>
+          <span class="swatch_item_label">로즈 골드</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_gold" data-filter="gold" aria-label="골드"></button>
+          <span class="swatch_item_label">골드</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_amber" data-filter="amber" aria-label="앰버"></button>
+          <span class="swatch_item_label">앰버</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_vivid" data-filter="vivid" aria-label="화사하게"></button>
+          <span class="swatch_item_label">화사하게</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_natural" data-filter="natural" aria-label="내추럴"></button>
+          <span class="swatch_item_label">내추럴</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_luminous" data-filter="luminous" aria-label="환하게"></button>
+          <span class="swatch_item_label">환하게</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_dramatic" data-filter="dramatic" aria-label="드라마틱"></button>
+          <span class="swatch_item_label">드라마틱</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_serene" data-filter="serene" aria-label="고요"></button>
+          <span class="swatch_item_label">고요</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_cozy" data-filter="cozy" aria-label="아늑하게"></button>
+          <span class="swatch_item_label">아늑하게</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_elegant" data-filter="elegant" aria-label="우아하게"></button>
+          <span class="swatch_item_label">우아하게</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_softmono" data-filter="softmono" aria-label="부드러운 흑백"></button>
+          <span class="swatch_item_label">부드러운 흑백</span>
+        </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_filter_hardmono" data-filter="hardmono" aria-label="강렬한 흑백"></button>
+          <span class="swatch_item_label">강렬한 흑백</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="custom_actions">
+      <button type="button" class="action_btn" id="save_photo_btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+        사진 저장
+      </button>
+      <button type="button" class="action_btn" id="save_video_btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+        영상 저장
+      </button>
+    </div>
+
+    <button type="button" class="qr_btn" id="qr_btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM14 20h3M20 17v3"/></svg>
+      QR 코드
+    </button>
+  </div>
+</div>
+
+<img id="print_output" class="print_only" alt="">
+
+</body>
+</html>

@@ -1,34 +1,40 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { auth, db } from './firebase.js';
-import { formatDateDisplay } from './format.js';
+import { savePhotos } from './photoStore.js';
 
 const preview = document.getElementById('camera_preview');
-const capturedPhoto = document.getElementById('captured_photo');
-const cameraCaption = document.getElementById('camera_caption');
 const canvas = document.getElementById('capture_canvas');
 const ctx = canvas.getContext('2d');
 const hint = document.getElementById('camera_hint');
 const closeBtn = document.getElementById('close_btn');
-const shutterControls = document.getElementById('camera_controls');
 const shutterBtn = document.getElementById('shutter_btn');
-const afterControls = document.getElementById('camera_controls_after');
-const retakeBtn = document.getElementById('retake_btn');
-const downloadBtn = document.getElementById('download_btn');
+const captureFlash = document.getElementById('capture_flash');
 
-let coupleNames = '';
-let weddingDate = '';
+const timerControl = document.querySelector('.timer_control');
+const timerBtn = document.getElementById('timer_btn');
+const timerLabel = document.getElementById('timer_label');
+const timerMenu = document.getElementById('timer_menu');
+const timerOptions = Array.from(document.querySelectorAll('.timer_option'));
+const pauseBtn = document.getElementById('pause_btn');
+const pauseIcon = pauseBtn.querySelector('.icon_pause');
+const playIcon = pauseBtn.querySelector('.icon_play');
+const countdownOverlay = document.getElementById('countdown_overlay');
+const countdownNumber = document.getElementById('countdown_number');
+const shotCounter = document.getElementById('shot_counter');
+
+const TOTAL_SHOTS = 6;
+
+let selectedSeconds = 5;
+let remainingSeconds = 0;
+let countdownIntervalId = null;
+let isCountingDown = false;
+let isPaused = false;
+
+let shotIndex = 0;
+let capturedPhotos = [];
 
 function setHint(msg){ hint.textContent = msg || ''; }
-
-function setCaption(){
-  cameraCaption.replaceChildren();
-  const line1 = document.createElement('div');
-  line1.textContent = coupleNames;
-  const line2 = document.createElement('div');
-  line2.textContent = formatDateDisplay(weddingDate);
-  cameraCaption.append(line1, line2);
-}
 
 closeBtn.addEventListener('click', ()=>{
   window.location.href = 'register.html';
@@ -54,10 +60,6 @@ onAuthStateChanged(auth, async (user)=>{
     window.location.href = 'register.html';
     return;
   }
-
-  coupleNames = data.coupleNames;
-  weddingDate = data.weddingDate;
-  setCaption();
 
   initCamera();
 });
@@ -96,51 +98,127 @@ function drawVideoFrame(){
   return true;
 }
 
-function drawCaption(){
-  const w = canvas.width;
-  const h = canvas.height;
-  const barHeight = h * 0.16;
-
-  const gradient = ctx.createLinearGradient(0, h - barHeight, 0, h);
-  gradient.addColorStop(0, 'rgba(0,0,0,0)');
-  gradient.addColorStop(1, 'rgba(0,0,0,0.6)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, h - barHeight, w, barHeight);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFFDF9';
-
-  const nameSize = Math.round(w * 0.045);
-  const dateSize = Math.round(w * 0.028);
-
-  ctx.font = `700 ${nameSize}px Pretendard, sans-serif`;
-  ctx.fillText(coupleNames, w / 2, h - barHeight * 0.45);
-
-  ctx.font = `600 ${dateSize}px Pretendard, sans-serif`;
-  ctx.fillText(formatDateDisplay(weddingDate), w / 2, h - barHeight * 0.18);
+// 셔터가 눌리는 순간 화면이 하얗게 번쩍 — 촬영됐다는 걸 눈으로 바로 인식하도록
+function triggerFlash(){
+  captureFlash.classList.remove('is_flashing');
+  void captureFlash.offsetWidth; // 리플로우를 강제해 연속 촬영에서도 매번 애니메이션이 재생되게 함
+  captureFlash.classList.add('is_flashing');
 }
 
-shutterBtn.addEventListener('click', ()=>{
+// 6장을 다 찍을 때까지 장마다 카운트다운 → 촬영을 반복
+function capturePhoto(){
   if(!drawVideoFrame()) return;
-  drawCaption();
+  triggerFlash();
 
-  const dataUrl = canvas.toDataURL('image/png');
-  capturedPhoto.src = dataUrl;
-  downloadBtn.href = dataUrl;
+  capturedPhotos.push(canvas.toDataURL('image/png'));
+  shotIndex++;
 
-  preview.hidden = true;
-  cameraCaption.hidden = true;
-  capturedPhoto.hidden = false;
+  if(shotIndex < TOTAL_SHOTS){
+    setTimeout(startCountdown, 600);
+  }else{
+    finishSequence();
+  }
+}
 
-  shutterControls.hidden = true;
-  afterControls.hidden = false;
+// 6장 촬영이 끝나면 사진들을 들고 선택 페이지로 이동
+async function finishSequence(){
+  shotCounter.hidden = true;
+  shutterBtn.disabled = false;
+  timerBtn.disabled = false;
+
+  await savePhotos(capturedPhotos);
+  window.location.href = 'photo-select-step1.html';
+}
+
+function setPauseIcon(paused){
+  pauseIcon.classList.toggle('is_hidden', paused);
+  playIcon.classList.toggle('is_hidden', !paused);
+  pauseBtn.setAttribute('aria-label', paused ? '재생' : '일시정지');
+}
+
+function updateCountdownDisplay(){
+  countdownNumber.textContent = remainingSeconds;
+}
+
+function updateShotCounter(){
+  shotCounter.textContent = `${shotIndex + 1} / ${TOTAL_SHOTS}`;
+  shotCounter.hidden = false;
+}
+
+function countdownTick(){
+  remainingSeconds--;
+  if(remainingSeconds <= 0){
+    clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
+    stopCountdownUI();
+    capturePhoto();
+    return;
+  }
+  updateCountdownDisplay();
+}
+
+function startCountdown(){
+  if(isCountingDown) return;
+  isCountingDown = true;
+  isPaused = false;
+  remainingSeconds = selectedSeconds;
+
+  shutterBtn.disabled = true;
+  timerBtn.disabled = true;
+  pauseBtn.disabled = false;
+  setPauseIcon(false);
+
+  updateShotCounter();
+  countdownOverlay.hidden = false;
+  updateCountdownDisplay();
+  countdownIntervalId = setInterval(countdownTick, 1000);
+}
+
+// 카운트다운 UI만 정리 — 셔터/타이머 버튼은 연속 촬영이 끝날 때까지 계속 잠궈둠
+function stopCountdownUI(){
+  isCountingDown = false;
+  isPaused = false;
+  countdownOverlay.hidden = true;
+  pauseBtn.disabled = true;
+  setPauseIcon(false);
+}
+
+shutterBtn.addEventListener('click', startCountdown);
+
+pauseBtn.addEventListener('click', ()=>{
+  if(!isCountingDown) return;
+
+  if(isPaused){
+    isPaused = false;
+    setPauseIcon(false);
+    countdownIntervalId = setInterval(countdownTick, 1000);
+  }else{
+    isPaused = true;
+    setPauseIcon(true);
+    clearInterval(countdownIntervalId);
+    countdownIntervalId = null;
+  }
 });
 
-retakeBtn.addEventListener('click', ()=>{
-  capturedPhoto.hidden = true;
-  preview.hidden = false;
-  cameraCaption.hidden = false;
+timerBtn.addEventListener('click', ()=>{
+  const willOpen = timerMenu.hidden;
+  timerMenu.hidden = !willOpen;
+  timerBtn.setAttribute('aria-expanded', String(willOpen));
+});
 
-  shutterControls.hidden = false;
-  afterControls.hidden = true;
+timerOptions.forEach((option)=>{
+  option.addEventListener('click', ()=>{
+    selectedSeconds = Number(option.dataset.seconds);
+    timerLabel.textContent = `${selectedSeconds}초`;
+    timerOptions.forEach((o)=> o.classList.toggle('is_selected', o === option));
+    timerMenu.hidden = true;
+    timerBtn.setAttribute('aria-expanded', 'false');
+  });
+});
+
+document.addEventListener('click', (e)=>{
+  if(!timerMenu.hidden && !timerControl.contains(e.target)){
+    timerMenu.hidden = true;
+    timerBtn.setAttribute('aria-expanded', 'false');
+  }
 });

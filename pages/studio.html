@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#333333">
 <title>Pledge - 포토 스튜디오</title>
 <link rel="icon" type="image/x-icon" href="../assets/favicon/favicon.ico">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
@@ -15,8 +15,6 @@
 
 <div class="camera_stage">
   <video id="camera_preview" autoplay playsinline muted></video>
-  <img id="captured_photo" alt="촬영된 사진" hidden>
-  <div class="camera_caption" id="camera_caption"></div>
 
   <div class="camera_topbar">
     <button type="button" class="close_btn" id="close_btn" aria-label="닫기">
@@ -24,16 +22,40 @@
     </button>
   </div>
 
+  <div class="shot_counter" id="shot_counter" hidden></div>
+
   <p class="camera_hint" id="camera_hint"></p>
 
-  <div class="camera_controls" id="camera_controls">
-    <button type="button" class="shutter_btn" id="shutter_btn" disabled aria-label="촬영하기"></button>
+  <div class="countdown_overlay" id="countdown_overlay" hidden>
+    <span id="countdown_number"></span>
   </div>
 
-  <div class="camera_controls_after" id="camera_controls_after" hidden>
-    <button type="button" class="ghost_btn" id="retake_btn">다시 찍기</button>
-    <a class="ghost_btn" id="download_btn" href="#" download="pledge-photo.png">저장</a>
+  <div class="camera_controls" id="camera_controls">
+    <div class="timer_control">
+      <button type="button" class="timer_btn" id="timer_btn" aria-haspopup="true" aria-expanded="false" aria-label="타이머 설정">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M9 2h6"/></svg>
+        <span id="timer_label">5초</span>
+      </button>
+      <div class="timer_menu" id="timer_menu" hidden>
+        <button type="button" class="timer_option is_selected" data-seconds="5">5초</button>
+        <button type="button" class="timer_option" data-seconds="10">10초</button>
+        <button type="button" class="timer_option" data-seconds="15">15초</button>
+        <button type="button" class="timer_option" data-seconds="20">20초</button>
+        <button type="button" class="timer_option" data-seconds="25">25초</button>
+        <button type="button" class="timer_option" data-seconds="30">30초</button>
+      </div>
+    </div>
+
+    <button type="button" class="shutter_btn" id="shutter_btn" disabled aria-label="촬영하기"></button>
+
+    <button type="button" class="pause_btn" id="pause_btn" disabled aria-label="일시정지">
+      <svg class="icon_pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      <svg class="icon_play is_hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5z"/></svg>
+    </button>
   </div>
+
+  <div class="capture_flash" id="capture_flash"></div>
+
 </div>
 
 <canvas id="capture_canvas" hidden></canvas>

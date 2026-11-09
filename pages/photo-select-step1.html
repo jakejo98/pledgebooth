@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F5EFE0">
+<title>Pledge - 사진 선택</title>
+<link rel="icon" type="image/x-icon" href="../assets/favicon/favicon.ico">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@700&family=Playfair+Display:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../css/reset.css">
+<link rel="stylesheet" href="../css/photo-select-step1.css">
+<script type="module" src="../js/photoSelect.js"></script>
+</head>
+<body class="select_body">
+
+<div class="selection_stage">
+  <div class="selection_topbar">
+    <button type="button" class="back_btn" id="selection_back_btn" aria-label="뒤로가기">
+      <img src="../assets/icons/icon_prev.svg" width="24" height="24" alt="">
+    </button>
+  </div>
+
+  <div class="selection_body">
+    <div class="selection_frame" id="selection_frame">
+      <div class="frame_brand" id="selection_brand"></div>
+
+      <div class="frame_slot"><img class="frame_slot_img" alt="" hidden></div>
+      <div class="frame_slot"><img class="frame_slot_img" alt="" hidden></div>
+      <div class="frame_slot"><img class="frame_slot_img" alt="" hidden></div>
+      <div class="frame_slot"><img class="frame_slot_img" alt="" hidden></div>
+
+      <div class="frame_caption">
+        <div class="frame_caption_names" id="frame_caption_names"></div>
+        <div class="frame_caption_date" id="frame_caption_date"></div>
+      </div>
+    </div>
+
+    <p class="selection_label" id="selection_label">사진 선택 (0/4)</p>
+
+    <div class="selection_strip" id="selection_strip"></div>
+  </div>
+
+  <button type="button" class="btn_next" id="selection_next_btn" disabled>다음</button>
+</div>
+
+</body>
+</html>

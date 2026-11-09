@@ -1,0 +1,80 @@
+/* 재사용 가능한 날짜 선택 캘린더 — 크롬 기본 date picker 톤의 컴팩트한 absolute 팝업 */
+.calendar_popup{
+  position:absolute;
+  top:calc(100% + 4px);
+  left:0;
+  z-index:20;
+  width:224px;
+  background:var(--white, #FFFDF9);
+  border:1px solid var(--line, #E2D6B8);
+  border-radius:8px;
+  box-shadow:0 8px 24px rgba(43,36,32,0.18);
+  padding:8px;
+}
+.calendar_header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:6px;
+  padding:0 2px;
+}
+.calendar_title{
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--ink, #3A2F22);
+}
+.calendar_nav{
+  width:22px; height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:none;
+  border:none;
+  border-radius:50%;
+  color:var(--ink-soft, #7A6F5D);
+  cursor:pointer;
+}
+.calendar_nav:hover{ background:var(--ivory-2, #FBF8F1); color:var(--ink, #3A2F22); }
+.calendar_nav img{ width:13px; height:13px; }
+.calendar_nav .icon_flip{ transform:scaleX(-1); }
+
+.calendar_weekdays{
+  display:grid;
+  grid-template-columns:repeat(7, 1fr);
+}
+.calendar_weekdays span{
+  display:block;
+  text-align:center;
+  font-size:9.5px;
+  font-weight:600;
+  color:var(--ink-soft, #7A6F5D);
+  padding:2px 0 4px;
+}
+
+.calendar_days{
+  display:grid;
+  grid-template-columns:repeat(7, 1fr);
+  gap:1px;
+}
+.calendar_day{
+  width:28px;
+  height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:none;
+  border:none;
+  border-radius:50%;
+  font-family:inherit;
+  font-size:11.5px;
+  color:var(--ink, #3A2F22);
+  cursor:pointer;
+}
+.calendar_day:hover{ background:var(--ivory-2, #FBF8F1); }
+.calendar_day.is_muted{ color:#C9BEA8; }
+.calendar_day.is_today{ font-weight:700; color:var(--gold-dark, #9C7C18); }
+.calendar_day.is_selected{
+  background:linear-gradient(135deg, var(--gold-light, #D9B84D), var(--gold-dark, #9C7C18));
+  color:var(--white, #FFFDF9);
+  font-weight:700;
+}

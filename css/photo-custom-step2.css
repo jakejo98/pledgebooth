@@ -1,0 +1,336 @@
+html, body.custom_body{
+  height:100%;
+  background:var(--ivory, #F5EFE0);
+  font-family:'Pretendard', sans-serif;
+}
+
+.custom_stage{
+  width:100%;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  padding:calc(env(safe-area-inset-top, 0px) + 14px) 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
+}
+
+.custom_topbar{
+  margin-bottom:4px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.back_btn,
+.print_btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:none;
+  border:none;
+  color:var(--ink, #3A2F22);
+  padding:8px;
+  cursor:pointer;
+}
+.back_btn img,
+.print_btn img{ width:24px; height:24px; }
+
+.custom_scroll{
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  overflow-y:auto;
+}
+
+.custom_frame{
+  width:100%;
+  max-width:640px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  background:#fff;
+  border:1px solid #999;
+  padding:28px 16px 16px;
+  margin:16px 0 22px;
+  flex-shrink:0;
+}
+.custom_frame .frame_brand{
+  grid-column:1 / -1;
+  text-align:center;
+  font-family:'Montserrat', sans-serif;
+  font-size:14px;
+  line-height:20px;
+  font-weight:700;
+  letter-spacing:0.16em;
+  color:#333;
+}
+.custom_frame .frame_slot{
+  position:relative;
+  aspect-ratio:3 / 4;
+  background:#fff;
+  border:1px solid #999;
+  overflow:hidden;
+}
+.custom_frame .frame_slot_img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.custom_frame .frame_caption{
+  grid-column:1 / -1;
+  margin-top:16px;
+  text-align:center;
+}
+.custom_frame .frame_caption_names{
+  font-family:'Great Vibes', cursive;
+  font-size:28px;
+  line-height:42px;
+  font-weight:300;
+  color:#333;
+}
+.custom_frame .frame_caption_date{
+  font-family:'Playfair Display', serif;
+  font-size:16px;
+  line-height:24px;
+  font-weight:500;
+  color:#333;
+}
+
+.custom_frame.frame_style_mono{ background:#000; border-color:#000; }
+.custom_frame.frame_style_mono .frame_slot{ border-color:#000; }
+.custom_frame.frame_style_mono .frame_brand,
+.custom_frame.frame_style_mono .frame_caption_names,
+.custom_frame.frame_style_mono .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_gold{ background:var(--gold, #C9A227); border-color:var(--gold, #C9A227); }
+.custom_frame.frame_style_gold .frame_slot{ border-color:var(--gold, #C9A227); }
+.custom_frame.frame_style_gold .frame_brand,
+.custom_frame.frame_style_gold .frame_caption_names,
+.custom_frame.frame_style_gold .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_blush{ background:#E8B9BE; border-color:#E8B9BE; }
+.custom_frame.frame_style_blush .frame_slot{ border-color:#E8B9BE; }
+.custom_frame.frame_style_blush .frame_brand,
+.custom_frame.frame_style_blush .frame_caption_names,
+.custom_frame.frame_style_blush .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_rose{ background:#B98080; border-color:#B98080; }
+.custom_frame.frame_style_rose .frame_slot{ border-color:#B98080; }
+.custom_frame.frame_style_rose .frame_brand,
+.custom_frame.frame_style_rose .frame_caption_names,
+.custom_frame.frame_style_rose .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_sage{ background:#7D8F6E; border-color:#7D8F6E; }
+.custom_frame.frame_style_sage .frame_slot{ border-color:#7D8F6E; }
+.custom_frame.frame_style_sage .frame_brand,
+.custom_frame.frame_style_sage .frame_caption_names,
+.custom_frame.frame_style_sage .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_champagne{ background:#DCC48C; border-color:#DCC48C; }
+.custom_frame.frame_style_champagne .frame_slot{ border-color:#DCC48C; }
+.custom_frame.frame_style_champagne .frame_brand,
+.custom_frame.frame_style_champagne .frame_caption_names,
+.custom_frame.frame_style_champagne .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_lavender{ background:#C2AEDE; border-color:#C2AEDE; }
+.custom_frame.frame_style_lavender .frame_slot{ border-color:#C2AEDE; }
+.custom_frame.frame_style_lavender .frame_brand,
+.custom_frame.frame_style_lavender .frame_caption_names,
+.custom_frame.frame_style_lavender .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_navy{ background:#22304A; border-color:#22304A; }
+.custom_frame.frame_style_navy .frame_slot{ border-color:#22304A; }
+.custom_frame.frame_style_navy .frame_brand,
+.custom_frame.frame_style_navy .frame_caption_names,
+.custom_frame.frame_style_navy .frame_caption_date{ color:#fff; }
+
+.custom_frame.frame_style_terracotta{ background:#C1704A; border-color:#C1704A; }
+.custom_frame.frame_style_terracotta .frame_slot{ border-color:#C1704A; }
+.custom_frame.frame_style_terracotta .frame_brand,
+.custom_frame.frame_style_terracotta .frame_caption_names,
+.custom_frame.frame_style_terracotta .frame_caption_date{ color:#fff; }
+
+.frame_slot_img.filter_coolrose{ filter:saturate(1.1) hue-rotate(-8deg) brightness(1.05) contrast(1.03); }
+.frame_slot_img.filter_neutral{ filter:contrast(1.02) saturate(0.98); }
+.frame_slot_img.filter_bright{ filter:brightness(1.15) contrast(1.05) saturate(1.05); }
+.frame_slot_img.filter_rosegold{ filter:sepia(0.25) saturate(1.3) hue-rotate(-15deg) brightness(1.05); }
+.frame_slot_img.filter_gold{ filter:sepia(0.35) saturate(1.2) brightness(1.05) hue-rotate(-5deg); }
+.frame_slot_img.filter_amber{ filter:sepia(0.5) saturate(1.3) brightness(0.98) hue-rotate(-8deg); }
+.frame_slot_img.filter_vivid{ filter:saturate(1.4) brightness(1.08) contrast(1.08); }
+.frame_slot_img.filter_natural{ filter:contrast(1.03) brightness(1.02); }
+.frame_slot_img.filter_luminous{ filter:brightness(1.2) contrast(0.95) saturate(1.05); }
+.frame_slot_img.filter_dramatic{ filter:contrast(1.3) saturate(1.15) brightness(0.95); }
+.frame_slot_img.filter_serene{ filter:saturate(0.75) brightness(1.03) hue-rotate(5deg) contrast(0.97); }
+.frame_slot_img.filter_cozy{ filter:sepia(0.2) saturate(1.1) brightness(1.03) contrast(0.98); }
+.frame_slot_img.filter_elegant{ filter:saturate(0.85) contrast(1.1); }
+.frame_slot_img.filter_softmono{ filter:grayscale(1) contrast(0.9) brightness(1.05); }
+.frame_slot_img.filter_hardmono{ filter:grayscale(1) contrast(1.4) brightness(0.95); }
+
+/* 탭 */
+.custom_tabs{
+  width:100%;
+  max-width:640px;
+  display:flex;
+  border-bottom:1px solid var(--line, #E2D6B8);
+  flex-shrink:0;
+}
+.custom_tab{
+  flex:1;
+  padding:10px 0 12px;
+  background:none;
+  border:none;
+  border-bottom:2px solid transparent;
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink-soft, #7A6F5D);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+.custom_tab.is_active{
+  color:var(--ink, #3A2F22);
+  border-bottom-color:var(--ink, #3A2F22);
+  font-weight:700;
+}
+/* 탭 패널 */
+.custom_panel{
+  width:100%;
+  max-width:640px;
+  padding:16px 0 4px;
+  flex-shrink:0;
+}
+.swatch_scroll{
+  display:flex;
+  gap:14px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  -webkit-overflow-scrolling:touch;
+}
+.swatch_item{
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+.swatch_item_label{
+  font-size:11px;
+  font-weight:600;
+  color:#333;
+  white-space:nowrap;
+}
+.swatch_circle{
+  flex:0 0 auto;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  box-sizing:border-box;
+  border:2px solid #999;
+  padding:0;
+  cursor:pointer;
+}
+.swatch_circle.is_selected{
+  border-color:#333;
+}
+
+.swatch_basic{ background:#fff; }
+.swatch_mono{ background:#000; }
+.swatch_blush{ background:#E8B9BE; }
+.swatch_rose{ background:#B98080; }
+.swatch_sage{ background:#7D8F6E; }
+.swatch_champagne{ background:#DCC48C; }
+.swatch_lavender{ background:#C2AEDE; }
+.swatch_navy{ background:#22304A; }
+.swatch_terracotta{ background:#C1704A; }
+.swatch_gold{ background:var(--gold, #C9A227); }
+
+.swatch_filter_coolrose{ background:linear-gradient(135deg, #e3b5c9, #9fb8d9); }
+.swatch_filter_neutral{ background:linear-gradient(135deg, #d8d4cc, #a8a39a); }
+.swatch_filter_bright{ background:linear-gradient(135deg, #fff6e0, #ffd9a0); }
+.swatch_filter_rosegold{ background:linear-gradient(135deg, #e8b4a0, #d8927a); }
+.swatch_filter_gold{ background:linear-gradient(135deg, #e8c468, #c9a227); }
+.swatch_filter_amber{ background:linear-gradient(135deg, #d98a3d, #a85d1f); }
+.swatch_filter_vivid{ background:linear-gradient(135deg, #ffd1dc, #ffb6c1); }
+.swatch_filter_natural{ background:linear-gradient(135deg, #e8dfce, #c9bfa8); }
+.swatch_filter_luminous{ background:linear-gradient(135deg, #fffdf5, #ffe9b8); }
+.swatch_filter_dramatic{ background:linear-gradient(135deg, #4a4a4a, #1a1a1a); }
+.swatch_filter_serene{ background:linear-gradient(135deg, #c7d4de, #9fb3c2); }
+.swatch_filter_cozy{ background:linear-gradient(135deg, #e0b896, #b98858); }
+.swatch_filter_elegant{ background:linear-gradient(135deg, #cdbfae, #8a7968); }
+.swatch_filter_softmono{ background:linear-gradient(135deg, #e8e8e8, #a8a8a8); }
+.swatch_filter_hardmono{ background:linear-gradient(135deg, #5a5a5a, #000000); }
+
+/* 액션 버튼 */
+.custom_actions{
+  width:100%;
+  max-width:640px;
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+  flex-shrink:0;
+}
+.action_btn{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:13px 0;
+  border-radius:8px;
+  border:1px solid var(--line, #E2D6B8);
+  background:#fff;
+  font-family:inherit;
+  font-size:13.5px;
+  font-weight:700;
+  color:var(--ink, #3A2F22);
+  cursor:pointer;
+}
+.action_btn svg{ width:17px; height:17px; }
+
+.qr_btn{
+  width:100%;
+  max-width:640px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:10px;
+  padding:15px 0;
+  border-radius:8px;
+  border:none;
+  background:#333;
+  color:#fff;
+  font-family:inherit;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+}
+.qr_btn svg{ width:18px; height:18px; }
+
+/* 프린트 — 평소엔 화면 밖으로 치워두고 인쇄할 때만 완성된 프레임 이미지 한 장만 보여줌.
+   display:none으로 숨기면 Safari가 인쇄 시점에 아예 렌더링을 건너뛰어버리는 경우가 있어서,
+   항상 레이아웃엔 존재하되 화면에서만 안 보이게 처리(흔히 쓰는 visually-hidden 패턴). */
+.print_only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+}
+
+@media print{
+  .custom_stage{ display:none; }
+  .print_only{
+    position:static;
+    width:100%;
+    height:auto;
+    overflow:visible;
+    clip:auto;
+    margin:0 auto;
+  }
+  @page{ size:auto; margin:0; }
+}
