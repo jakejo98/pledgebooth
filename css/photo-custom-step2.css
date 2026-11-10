@@ -152,6 +152,21 @@ html, body.custom_body{
 .custom_frame.frame_style_terracotta .frame_caption_names,
 .custom_frame.frame_style_terracotta .frame_caption_date{ color:#fff; }
 
+/* 직접 업로드한 사진을 프레임 배경으로 쓰는 커스텀 프레임 — 배경이 어떤 사진이든
+   읽히도록 흰 테두리/흰 글씨 + 그림자 고정 */
+.custom_frame.frame_style_custom{
+  background-size:cover;
+  background-position:center;
+  border-color:#fff;
+}
+.custom_frame.frame_style_custom .frame_slot{ border-color:#fff; }
+.custom_frame.frame_style_custom .frame_brand,
+.custom_frame.frame_style_custom .frame_caption_names,
+.custom_frame.frame_style_custom .frame_caption_date{
+  color:#fff;
+  text-shadow:0 1px 4px rgba(0,0,0,0.6);
+}
+
 .frame_slot_img.filter_coolrose{ filter:saturate(1.1) hue-rotate(-8deg) brightness(1.05) contrast(1.03); }
 .frame_slot_img.filter_neutral{ filter:contrast(1.02) saturate(0.98); }
 .frame_slot_img.filter_bright{ filter:brightness(1.15) contrast(1.05) saturate(1.05); }
@@ -248,6 +263,14 @@ html, body.custom_body{
 .swatch_terracotta{ background:#C1704A; }
 .swatch_gold{ background:var(--gold, #C9A227); }
 
+.swatch_add{
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.swatch_add img{ width:24px; height:24px; }
+
 .swatch_filter_coolrose{ background:linear-gradient(135deg, #e3b5c9, #9fb8d9); }
 .swatch_filter_neutral{ background:linear-gradient(135deg, #d8d4cc, #a8a39a); }
 .swatch_filter_bright{ background:linear-gradient(135deg, #fff6e0, #ffd9a0); }
@@ -323,14 +346,16 @@ html, body.custom_body{
 }
 
 @media print{
+  html, body{ height:100%; margin:0; }
   .custom_stage{ display:none; }
   .print_only{
     position:static;
     width:100%;
-    height:auto;
+    height:100%;
     overflow:visible;
     clip:auto;
-    margin:0 auto;
+    display:block;
   }
-  @page{ size:auto; margin:0; }
+  /* 프레임 자체 비율(320:535, 약 3:5)에 맞춘 페이지 크기 — 여백 없이 한 장 꽉 채워서 출력 */
+  @page{ size:4in 6.7in; margin:0; }
 }

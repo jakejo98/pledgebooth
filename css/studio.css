@@ -38,7 +38,7 @@ html, body.studio_body{
   justify-content:center;
   cursor:pointer;
 }
-.close_btn svg{ width:18px; height:18px; }
+.close_btn img{ width:24px; height:24px; }
 
 .shot_counter{
   position:absolute;

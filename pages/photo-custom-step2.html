@@ -88,7 +88,14 @@
           <button type="button" class="swatch_circle swatch_terracotta" data-frame="terracotta" aria-label="테라코타"></button>
           <span class="swatch_item_label">테라코타</span>
         </div>
+        <div class="swatch_item">
+          <button type="button" class="swatch_circle swatch_add" id="frame_upload_btn" aria-label="내 사진으로 프레임 추가">
+            <img src="../assets/icons/icon_plus.svg" width="24" height="24" alt="">
+          </button>
+          <span class="swatch_item_label">추가</span>
+        </div>
       </div>
+      <input type="file" id="frame_upload_input" accept="image/*" hidden>
     </div>
 
     <div class="custom_panel" data-panel="filter" hidden>

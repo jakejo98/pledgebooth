@@ -43,6 +43,13 @@ body{
   margin-bottom:32px;
 }
 
+.logo_link{
+  display:block;
+  width:25%;
+  text-decoration:none;
+  cursor:pointer;
+}
+
 .logo_description{
   font-size:16px;
   font-weight:500;
@@ -53,7 +60,8 @@ body{
 }
 
 .logo{
-  width: 25%;
+  width: 100%;
+  display:block;
 }
 
 .eyebrow{

@@ -16,6 +16,8 @@ const tabs = Array.from(document.querySelectorAll('.custom_tab'));
 const panels = Array.from(document.querySelectorAll('.custom_panel'));
 const frameStyleRow = document.getElementById('frame_style_row');
 const filterRow = document.getElementById('filter_row');
+const frameUploadBtn = document.getElementById('frame_upload_btn');
+const frameUploadInput = document.getElementById('frame_upload_input');
 
 const savePhotoBtn = document.getElementById('save_photo_btn');
 const saveVideoBtn = document.getElementById('save_video_btn');
@@ -84,6 +86,12 @@ const FILTER_CANVAS_VALUE = {
 let currentFrameStyle = 'basic';
 let currentFilter = 'coolrose';
 
+// 직접 업로드한 커스텀 프레임 배경 — id별로 원본(dataURL)과, 캔버스에 그릴 때 쓸
+// 로드된 Image 엘리먼트를 따로 들고 있는다
+let customFrameCounter = 0;
+const customFrameImages = {};
+const customFrameImageEls = {};
+
 backBtn.addEventListener('click', ()=>{
   window.location.href = 'photo-select-step1.html';
 });
@@ -148,19 +156,92 @@ tabs.forEach((tab)=>{
   });
 });
 
-// 프레임 스타일 선택
+// 프레임 스타일 선택 ("+" 업로드 버튼은 별도 핸들러에서 처리하므로 여기선 건너뜀)
 frameStyleRow.addEventListener('click', (e)=>{
   const btn = e.target.closest('.swatch_circle');
-  if(!btn) return;
+  if(!btn || btn === frameUploadBtn) return;
 
   frameStyleRow.querySelectorAll('.swatch_circle').forEach((el)=> el.classList.remove('is_selected'));
   btn.classList.add('is_selected');
 
   Object.values(FRAME_CLASS_MAP).forEach((cls)=> cls && customFrame.classList.remove(cls));
+  customFrame.classList.remove('frame_style_custom');
+  customFrame.style.backgroundImage = '';
   currentFrameStyle = btn.dataset.frame;
-  const cls = FRAME_CLASS_MAP[currentFrameStyle];
-  if(cls) customFrame.classList.add(cls);
+
+  if(currentFrameStyle.startsWith('custom-')){
+    customFrame.classList.add('frame_style_custom');
+    customFrame.style.backgroundImage = `url(${customFrameImages[currentFrameStyle]})`;
+  }else{
+    const cls = FRAME_CLASS_MAP[currentFrameStyle];
+    if(cls) customFrame.classList.add(cls);
+  }
   updatePrintPreview();
+});
+
+// "+" 버튼 → 파일 선택창 열기
+frameUploadBtn.addEventListener('click', ()=>{
+  frameUploadInput.click();
+});
+
+// 이미지를 작게 그려서 픽셀 평균을 내는 방식으로 대표(메인) 색상을 뽑는다
+function getAverageColor(img){
+  const SAMPLE = 32;
+  const c = document.createElement('canvas');
+  c.width = SAMPLE;
+  c.height = SAMPLE;
+  const cctx = c.getContext('2d');
+  cctx.drawImage(img, 0, 0, SAMPLE, SAMPLE);
+
+  const { data } = cctx.getImageData(0, 0, SAMPLE, SAMPLE);
+  let r = 0, g = 0, b = 0, count = 0;
+  for(let i = 0; i < data.length; i += 4){
+    r += data[i]; g += data[i + 1]; b += data[i + 2];
+    count++;
+  }
+  r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// 사진을 고르면 새 스와치로 추가하고 바로 프레임에 적용.
+// 스와치 자체는 사진 썸네일이 아니라, 다른 스와치들처럼 이미지의 메인 색상으로 꽉 채운 단색 원으로 보여준다
+frameUploadInput.addEventListener('change', ()=>{
+  const file = frameUploadInput.files[0];
+  frameUploadInput.value = '';
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const dataUrl = reader.result;
+    const customNumber = ++customFrameCounter;
+    const id = `custom-${customNumber}`;
+    customFrameImages[id] = dataUrl;
+
+    const img = new Image();
+    img.onload = ()=>{
+      customFrameImageEls[id] = img;
+      const mainColor = getAverageColor(img);
+
+      const item = document.createElement('div');
+      item.className = 'swatch_item';
+      item.innerHTML = `
+        <button type="button" class="swatch_circle swatch_custom" data-frame="${id}" aria-label="커스텀${customNumber}" style="background-color:${mainColor}"></button>
+        <span class="swatch_item_label">커스텀${customNumber}</span>
+      `;
+      frameUploadBtn.closest('.swatch_item').before(item);
+
+      frameStyleRow.querySelectorAll('.swatch_circle').forEach((el)=> el.classList.remove('is_selected'));
+      item.querySelector('.swatch_circle').classList.add('is_selected');
+
+      Object.values(FRAME_CLASS_MAP).forEach((cls)=> cls && customFrame.classList.remove(cls));
+      currentFrameStyle = id;
+      customFrame.classList.add('frame_style_custom');
+      customFrame.style.backgroundImage = `url(${dataUrl})`;
+      updatePrintPreview();
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
 });
 
 // 필터 선택
@@ -178,6 +259,16 @@ filterRow.addEventListener('click', (e)=>{
   updatePrintPreview();
 });
 
+// object-fit:cover와 동일하게, 이미지 비율을 유지한 채 대상 영역을 가득 채워서 그린다
+function drawCoverImage(ctx, img, dx, dy, dWidth, dHeight){
+  const scale = Math.max(dWidth / img.width, dHeight / img.height);
+  const sw = dWidth / scale;
+  const sh = dHeight / scale;
+  const sx = (img.width - sw) / 2;
+  const sy = (img.height - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dWidth, dHeight);
+}
+
 // 지금 화면에 보이는 프레임(사진 4장 + 문구 + 테두리/필터)을 그대로 캔버스에 그려서 이미지 파일로 저장
 // Safari는 document.fonts.load()가 실제로 폰트를 받아오지 않고도 완료된 것처럼 구는 버그가 있어서
 // 쓰지 않는다 — 대신 화면에 이미 같은 폰트로 글자가 렌더링돼 있으므로(브랜드/이름/날짜) 그걸로
@@ -190,7 +281,7 @@ async function renderFrameToCanvas(){
   const PAD_TOP = 28, PAD_X = 16, PAD_BOTTOM = 16;
   const GAP = 8;
   const SLOT_W = (FRAME_W - PAD_X * 2 - GAP) / 2;
-  const SLOT_H = SLOT_W * 4 / 3;
+  const SLOT_H = Math.round(SLOT_W * 4 / 3); // 3:4 비율 유지하되 소수점 없는 정수로 반올림
   const BRAND_H = 20;
   const CAPTION_MARGIN_TOP = 16;
   const NAMES_LINE_HEIGHT = 42;
@@ -204,10 +295,17 @@ async function renderFrameToCanvas(){
   const ctx = canvas.getContext('2d');
   ctx.scale(SCALE, SCALE);
 
-  const style = FRAME_CANVAS_STYLE[currentFrameStyle];
+  const isCustom = currentFrameStyle.startsWith('custom-');
+  const style = isCustom
+    ? { border: '#ffffff', slotBorder: '#ffffff', text: '#ffffff' }
+    : FRAME_CANVAS_STYLE[currentFrameStyle];
 
-  ctx.fillStyle = style.bg;
-  ctx.fillRect(0, 0, FRAME_W, frameH);
+  if(isCustom && customFrameImageEls[currentFrameStyle]){
+    drawCoverImage(ctx, customFrameImageEls[currentFrameStyle], 0, 0, FRAME_W, frameH);
+  }else{
+    ctx.fillStyle = isCustom ? '#ffffff' : style.bg;
+    ctx.fillRect(0, 0, FRAME_W, frameH);
+  }
   ctx.strokeStyle = style.border;
   ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
