@@ -402,21 +402,86 @@ async function renderFrameToCanvas(){
   return canvas;
 }
 
+// 휴대폰/태블릿 여부 — iPadOS는 데스크톱 Safari처럼 'Macintosh'로 보고하므로 터치 지원 여부로 구분
+function isMobileDevice(){
+  const ua = navigator.userAgent;
+  return /Android|iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+
+// 웹페이지는 사진첩에 직접 쓸 수 없어서, 모바일에서는 공유 시트를 띄운다.
+// iOS: 공유 시트의 '이미지 저장'/'비디오 저장' → 사진 앱 / Android: 기기별 저장 메뉴.
+// 반환값: 'done' | 'cancelled' | 'needs-tap'
+//  - 'needs-tap': 브라우저가 공유를 막음(버튼 탭 직후가 아님 — 영상 녹화처럼 오래 걸린 경우).
+//    공유는 사용자 탭 안에서만 열 수 있으므로 한 번 더 탭받아서 다시 시도해야 한다
+async function saveFileBlob(blob, filename){
+  // 'video/mp4;codecs=avc1'처럼 코덱이 붙은 타입은 canShare가 거부할 수 있어서 기본 타입만 남긴다
+  const file = new File([blob], filename, { type: blob.type.split(';')[0] });
+  if(isMobileDevice() && navigator.canShare?.({ files: [file] })){
+    try{
+      await navigator.share({ files: [file] });
+      return 'done';
+    }catch(err){
+      if(err.name === 'AbortError') return 'cancelled';
+      if(err.name === 'NotAllowedError') return 'needs-tap';
+    }
+  }
+  downloadBlob(blob, filename);
+  return 'done';
+}
+
+// 공유가 막혀서 다시 탭을 기다리는 파일 — 버튼별로 하나씩
+const pendingSaves = new Map();
+
+function setSaveBtnLabel(btn, text){
+  btn.querySelector('.action_btn_label').textContent = text;
+}
+
+// 버튼을 '탭해서 저장' 상태로 바꿔두고, 다음 탭에서 바로 공유 시트를 연다
+function waitForTapToSave(btn, blob, filename, label){
+  pendingSaves.set(btn, { blob, filename });
+  setSaveBtnLabel(btn, label);
+}
+
+// 대기 중인 파일이 있으면 저장하고 true — 버튼 클릭 핸들러 맨 앞에서 호출
+async function savePendingIfAny(btn, defaultLabel){
+  const pending = pendingSaves.get(btn);
+  if(!pending) return false;
+  pendingSaves.delete(btn);
+  setSaveBtnLabel(btn, defaultLabel);
+  await saveFileBlob(pending.blob, pending.filename);
+  return true;
+}
+
+// 프레임/필터를 바꾸면 대기 중인 파일은 옛 버전이 되므로 버린다
+function clearPendingSaves(){
+  pendingSaves.clear();
+  setSaveBtnLabel(savePhotoBtn, '사진 저장');
+  setSaveBtnLabel(saveVideoBtn, '영상 저장');
+}
+
 savePhotoBtn.addEventListener('click', async ()=>{
+  if(await savePendingIfAny(savePhotoBtn, '사진 저장')) return;
+
   savePhotoBtn.disabled = true;
   try{
     const canvas = await renderFrameToCanvas();
-    canvas.toBlob((blob)=>{
-      if(!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pledgebooth.png';
-      document.body.append(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }, 'image/png');
+    const blob = await new Promise((resolve)=> canvas.toBlob(resolve, 'image/png'));
+    if(!blob) return;
+    const filename = 'pledgebooth.png';
+    if(await saveFileBlob(blob, filename) === 'needs-tap'){
+      waitForTapToSave(savePhotoBtn, blob, filename, '탭해서 사진 저장');
+    }
   } finally {
     savePhotoBtn.disabled = false;
   }
@@ -771,6 +836,8 @@ async function recordFrameVideoRealtime(){
 }
 
 saveVideoBtn.addEventListener('click', async ()=>{
+  if(await savePendingIfAny(saveVideoBtn, '영상 저장')) return;
+
   if(!supportsVideoRecording()){
     alert('이 브라우저에서는 영상 저장을 지원하지 않아요.');
     return;
@@ -780,14 +847,11 @@ saveVideoBtn.addEventListener('click', async ()=>{
   try{
     const blob = await recordFrameVideo();
     const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pledgebooth.${ext}`;
-    document.body.append(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    const filename = `pledgebooth.${ext}`;
+    // 녹화가 몇 초 걸리므로 iOS에서는 거의 항상 공유가 막힌다 → 한 번 더 탭받아서 저장
+    if(await saveFileBlob(blob, filename) === 'needs-tap'){
+      waitForTapToSave(saveVideoBtn, blob, filename, '탭해서 영상 저장');
+    }
   }catch(err){
     alert('영상 저장에 실패했어요. 다시 시도해주세요.');
   } finally {
@@ -799,6 +863,7 @@ saveVideoBtn.addEventListener('click', async ()=>{
 // 클릭 시점에 await를 거치면 Safari가 window.print()를 "사용자가 직접 요청한 동작"으로
 // 인정하지 않고 막아버리는 경우가 있어서, 미리 준비해두고 클릭하면 바로 print()만 부른다
 async function updatePrintPreview(){
+  clearPendingSaves();
   const canvas = await renderFrameToCanvas();
   printOutput.src = canvas.toDataURL('image/png');
 }
