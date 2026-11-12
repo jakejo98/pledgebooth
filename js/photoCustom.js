@@ -96,6 +96,8 @@ let selectedClips = []; // 선택된 4컷과 같은 순서의 영상 클립 — 
 let customFrameCounter = 0;
 const customFrameImages = {};
 const customFrameImageEls = {};
+// 커스텀 프레임별 글자색 — 배경이 밝아서 흰 글자가 안 보일 것 같으면 #333
+const customFrameTextColors = {};
 
 backBtn.addEventListener('click', ()=>{
   window.location.href = 'photo-select-step1.html';
@@ -181,12 +183,13 @@ frameStyleRow.addEventListener('click', (e)=>{
   btn.classList.add('is_selected');
 
   Object.values(FRAME_CLASS_MAP).forEach((cls)=> cls && customFrame.classList.remove(cls));
-  customFrame.classList.remove('frame_style_custom');
+  customFrame.classList.remove('frame_style_custom', 'frame_text_dark');
   customFrame.style.backgroundImage = '';
   currentFrameStyle = btn.dataset.frame;
 
   if(currentFrameStyle.startsWith('custom-')){
     customFrame.classList.add('frame_style_custom');
+    customFrame.classList.toggle('frame_text_dark', customFrameTextColors[currentFrameStyle] === '#333333');
     customFrame.style.backgroundImage = `url(${customFrameImages[currentFrameStyle]})`;
   }else{
     const cls = FRAME_CLASS_MAP[currentFrameStyle];
@@ -219,6 +222,34 @@ function getAverageColor(img){
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+// 글자가 놓이는 영역(브랜드 줄, 이름/날짜 줄)만 프레임과 같은 방식(cover)으로 잘라서 밝기를 재고,
+// 밝은 배경이면 흰 글자가 묻히므로 #333을 쓴다. 기준 좌표는 저장 캔버스(320 x 536)와 동일
+function getFrameTextColor(img){
+  const W = 320, H = 536;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const cctx = c.getContext('2d', { willReadFrequently: true });
+  // 투명 PNG는 투명 픽셀이 검정(0,0,0)으로 읽혀서 어둡다고 오판한다 —
+  // 실제 화면/저장본처럼 흰 바탕 위에 깔고 잰다
+  cctx.fillStyle = '#ffffff';
+  cctx.fillRect(0, 0, W, H);
+  drawCoverImage(cctx, img, 0, 0, W, H);
+
+  // [y, height] — 브랜드(28~48), 이름+날짜(454~520)
+  const regions = [[28, 20], [454, 66]];
+  let lumSum = 0, count = 0;
+  regions.forEach(([y, h])=>{
+    const { data } = cctx.getImageData(40, y, W - 80, h);
+    for(let i = 0; i < data.length; i += 4){
+      lumSum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      count++;
+    }
+  });
+  const avgLum = lumSum / count / 255;
+  return avgLum > 0.6 ? '#333333' : '#ffffff';
+}
+
 // 사진을 고르면 새 스와치로 추가하고 바로 프레임에 적용.
 // 스와치 자체는 사진 썸네일이 아니라, 다른 스와치들처럼 이미지의 메인 색상으로 꽉 채운 단색 원으로 보여준다
 frameUploadInput.addEventListener('change', ()=>{
@@ -237,6 +268,7 @@ frameUploadInput.addEventListener('change', ()=>{
     img.onload = ()=>{
       customFrameImageEls[id] = img;
       const mainColor = getAverageColor(img);
+      customFrameTextColors[id] = getFrameTextColor(img);
 
       const item = document.createElement('div');
       item.className = 'swatch_item';
@@ -252,6 +284,7 @@ frameUploadInput.addEventListener('change', ()=>{
       Object.values(FRAME_CLASS_MAP).forEach((cls)=> cls && customFrame.classList.remove(cls));
       currentFrameStyle = id;
       customFrame.classList.add('frame_style_custom');
+      customFrame.classList.toggle('frame_text_dark', customFrameTextColors[id] === '#333333');
       customFrame.style.backgroundImage = `url(${dataUrl})`;
       updatePrintPreview();
     };
@@ -313,18 +346,22 @@ async function renderFrameToCanvas(){
 
   const isCustom = currentFrameStyle.startsWith('custom-');
   const style = isCustom
-    ? { border: '#ffffff', slotBorder: '#ffffff', text: '#ffffff' }
+    ? { border: null, slotBorder: null, text: customFrameTextColors[currentFrameStyle] || '#ffffff' }
     : FRAME_CANVAS_STYLE[currentFrameStyle];
 
   if(isCustom && customFrameImageEls[currentFrameStyle]){
+    ctx.fillStyle = '#ffffff'; // 투명 PNG 프레임은 미리보기처럼 흰 바탕 위에 보이도록
+    ctx.fillRect(0, 0, FRAME_W, frameH);
     drawCoverImage(ctx, customFrameImageEls[currentFrameStyle], 0, 0, FRAME_W, frameH);
   }else{
     ctx.fillStyle = isCustom ? '#ffffff' : style.bg;
     ctx.fillRect(0, 0, FRAME_W, frameH);
   }
-  ctx.strokeStyle = style.border;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+  if(style.border){
+    ctx.strokeStyle = style.border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+  }
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -348,8 +385,10 @@ async function renderFrameToCanvas(){
       ctx.drawImage(img, x, y, SLOT_W, SLOT_H);
       ctx.restore();
     }
-    ctx.strokeStyle = style.slotBorder;
-    ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+    if(style.slotBorder){
+      ctx.strokeStyle = style.slotBorder;
+      ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+    }
   });
 
   const captionTop = photoTop + SLOT_H + GAP + SLOT_H + CAPTION_MARGIN_TOP;
@@ -442,7 +481,7 @@ async function recordFrameVideoFast(){
 
   const isCustom = currentFrameStyle.startsWith('custom-');
   const style = isCustom
-    ? { border: '#ffffff', slotBorder: '#ffffff', text: '#ffffff' }
+    ? { border: null, slotBorder: null, text: customFrameTextColors[currentFrameStyle] || '#ffffff' }
     : FRAME_CANVAS_STYLE[currentFrameStyle];
 
   const photoTop = PAD_TOP + BRAND_H + GAP;
@@ -530,14 +569,18 @@ async function recordFrameVideoFast(){
       ctx.clearRect(0, 0, FRAME_W, frameH);
 
       if(isCustom && customFrameImageEls[currentFrameStyle]){
+        ctx.fillStyle = '#ffffff'; // 투명 PNG 프레임은 미리보기처럼 흰 바탕 위에 보이도록
+        ctx.fillRect(0, 0, FRAME_W, frameH);
         drawCoverImage(ctx, customFrameImageEls[currentFrameStyle], 0, 0, FRAME_W, frameH);
       }else{
         ctx.fillStyle = isCustom ? '#ffffff' : style.bg;
         ctx.fillRect(0, 0, FRAME_W, frameH);
       }
-      ctx.strokeStyle = style.border;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+      if(style.border){
+        ctx.strokeStyle = style.border;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+      }
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -553,9 +596,11 @@ async function recordFrameVideoFast(){
           ctx.drawImage(bitmap, x, y, SLOT_W, SLOT_H);
           ctx.restore();
         }
-        ctx.strokeStyle = style.slotBorder;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+        if(style.slotBorder){
+          ctx.strokeStyle = style.slotBorder;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+        }
       });
 
       ctx.fillStyle = style.text;
@@ -608,7 +653,7 @@ async function recordFrameVideoRealtime(){
 
   const isCustom = currentFrameStyle.startsWith('custom-');
   const style = isCustom
-    ? { border: '#ffffff', slotBorder: '#ffffff', text: '#ffffff' }
+    ? { border: null, slotBorder: null, text: customFrameTextColors[currentFrameStyle] || '#ffffff' }
     : FRAME_CANVAS_STYLE[currentFrameStyle];
 
   const photoTop = PAD_TOP + BRAND_H + GAP;
@@ -642,14 +687,18 @@ async function recordFrameVideoRealtime(){
     ctx.clearRect(0, 0, FRAME_W, frameH);
 
     if(isCustom && customFrameImageEls[currentFrameStyle]){
+      ctx.fillStyle = '#ffffff'; // 투명 PNG 프레임은 미리보기처럼 흰 바탕 위에 보이도록
+      ctx.fillRect(0, 0, FRAME_W, frameH);
       drawCoverImage(ctx, customFrameImageEls[currentFrameStyle], 0, 0, FRAME_W, frameH);
     }else{
       ctx.fillStyle = isCustom ? '#ffffff' : style.bg;
       ctx.fillRect(0, 0, FRAME_W, frameH);
     }
-    ctx.strokeStyle = style.border;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+    if(style.border){
+      ctx.strokeStyle = style.border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+    }
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -665,9 +714,11 @@ async function recordFrameVideoRealtime(){
         ctx.drawImage(video, x, y, SLOT_W, SLOT_H);
         ctx.restore();
       }
-      ctx.strokeStyle = style.slotBorder;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+      if(style.slotBorder){
+        ctx.strokeStyle = style.slotBorder;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+      }
     });
 
     ctx.fillStyle = style.text;

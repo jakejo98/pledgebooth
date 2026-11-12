@@ -39,17 +39,22 @@ html, body.custom_body{
   flex-direction:column;
   align-items:center;
   overflow-y:auto;
+  container-type:inline-size; /* 프레임 크기 단위(--u)를 이 폭 기준으로 계산 */
 }
 
+/* 미리보기 프레임은 저장 캔버스(320 x 536)를 그대로 비율 확대한다.
+   --u = 캔버스 1px이 화면에서 차지하는 크기 → 모든 치수를 'N * --u'로 써서
+   화면 폭이 바뀌어도 비율·칸 위치가 저장 결과와 똑같이 유지된다 (커스텀 이미지가 잘리지 않음) */
 .custom_frame{
-  width:100%;
-  max-width:640px;
+  --u:calc(min(100cqw, 640px) / 320);
+  width:calc(320 * var(--u));
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:8px;
+  gap:calc(8 * var(--u));
   background:#fff;
-  border:1px solid #999;
-  padding:28px 16px 16px;
+  border:var(--u) solid #999;
+  /* 캔버스는 테두리를 프레임 안쪽에 겹쳐 그리므로, 여백에서 테두리 두께만큼 뺀다 */
+  padding:calc(27 * var(--u)) calc(15 * var(--u)) calc(15 * var(--u));
   margin:16px 0 22px;
   flex-shrink:0;
 }
@@ -57,17 +62,17 @@ html, body.custom_body{
   grid-column:1 / -1;
   text-align:center;
   font-family:'Montserrat', sans-serif;
-  font-size:14px;
-  line-height:20px;
+  font-size:calc(14 * var(--u));
+  line-height:calc(20 * var(--u));
   font-weight:700;
   letter-spacing:0.16em;
   color:#333;
 }
 .custom_frame .frame_slot{
   position:relative;
-  aspect-ratio:3 / 4;
+  aspect-ratio:140 / 187; /* 캔버스 칸 크기(140 x 187)와 동일 */
   background:#fff;
-  border:1px solid #999;
+  border:var(--u) solid #999;
   overflow:hidden;
 }
 .custom_frame .frame_slot_img{
@@ -80,20 +85,20 @@ html, body.custom_body{
 }
 .custom_frame .frame_caption{
   grid-column:1 / -1;
-  margin-top:16px;
+  margin-top:calc(8 * var(--u)); /* grid gap 8 + 8 = 캔버스 캡션 위 여백 16 */
   text-align:center;
 }
 .custom_frame .frame_caption_names{
   font-family:'Great Vibes', cursive;
-  font-size:28px;
-  line-height:42px;
+  font-size:calc(28 * var(--u));
+  line-height:calc(42 * var(--u));
   font-weight:300;
   color:#333;
 }
 .custom_frame .frame_caption_date{
   font-family:'Playfair Display', serif;
-  font-size:16px;
-  line-height:24px;
+  font-size:calc(16 * var(--u));
+  line-height:calc(24 * var(--u));
   font-weight:500;
   color:#333;
 }
@@ -157,14 +162,21 @@ html, body.custom_body{
 .custom_frame.frame_style_custom{
   background-size:cover;
   background-position:center;
-  border-color:#fff;
+  background-origin:border-box; /* 캔버스처럼 테두리 포함 전체(320 x 536)에 맞춰 깐다 */
+  border-color:transparent;
 }
-.custom_frame.frame_style_custom .frame_slot{ border-color:#fff; }
+.custom_frame.frame_style_custom .frame_slot{ border:none; }
 .custom_frame.frame_style_custom .frame_brand,
 .custom_frame.frame_style_custom .frame_caption_names,
 .custom_frame.frame_style_custom .frame_caption_date{
   color:#fff;
   text-shadow:0 1px 4px rgba(0,0,0,0.6);
+}
+.custom_frame.frame_style_custom.frame_text_dark .frame_brand,
+.custom_frame.frame_style_custom.frame_text_dark .frame_caption_names,
+.custom_frame.frame_style_custom.frame_text_dark .frame_caption_date{
+  color:#333;
+  text-shadow:none;
 }
 
 .frame_slot_img.filter_coolrose{ filter:saturate(1.1) hue-rotate(-8deg) brightness(1.05) contrast(1.03); }
