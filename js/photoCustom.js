@@ -1,8 +1,12 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { auth, db } from './firebase.js';
-import { loadPhotos, loadSelection } from './photoStore.js';
+import { loadPhotos, loadClips, loadSelection } from './photoStore.js';
 import { formatDateDisplay } from './format.js';
+import {
+  Input, ALL_FORMATS, BlobSource, VideoSampleSink,
+  Output, Mp4OutputFormat, BufferTarget, CanvasSource, QUALITY_MEDIUM,
+} from 'https://cdn.jsdelivr.net/npm/mediabunny@1.65.2/dist/bundles/mediabunny.min.mjs';
 
 const backBtn = document.getElementById('custom_back_btn');
 const printBtn = document.getElementById('custom_print_btn');
@@ -85,6 +89,7 @@ const FILTER_CANVAS_VALUE = {
 
 let currentFrameStyle = 'basic';
 let currentFilter = 'coolrose';
+let selectedClips = []; // 선택된 4컷과 같은 순서의 영상 클립 — "영상 저장" 때만 쓰인다
 
 // 직접 업로드한 커스텀 프레임 배경 — id별로 원본(dataURL)과, 캔버스에 그릴 때 쓸
 // 로드된 Image 엘리먼트를 따로 들고 있는다
@@ -117,11 +122,12 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
-  customBrand.textContent = `Pledge x ${data.company}`;
+  customBrand.textContent = 'Pledge';
   customNames.textContent = data.coupleNames;
   customDate.textContent = formatDateDisplay(data.weddingDate);
 
   const capturedPhotos = await loadPhotos();
+  const capturedClips = await loadClips();
   const selectedIndices = loadSelection();
 
   if(capturedPhotos.length === 0 || selectedIndices.length === 0){
@@ -129,10 +135,12 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
+  // 화면/사진 저장은 기본적으로 정지 사진만 사용 — 영상은 "영상 저장"을 눌렀을 때만 쓴다
   frameSlotImgs.forEach((img, slotIndex)=>{
     const photoIndex = selectedIndices[slotIndex];
     img.src = photoIndex === undefined ? '' : capturedPhotos[photoIndex];
   });
+  selectedClips = selectedIndices.map((photoIndex)=> capturedClips[photoIndex]);
 
   await Promise.all(frameSlotImgs.map((img)=> img.src && waitForImageLoad(img)));
   updatePrintPreview();
@@ -141,6 +149,14 @@ onAuthStateChanged(auth, async (user)=>{
 function waitForImageLoad(img){
   if(img.complete) return Promise.resolve();
   return new Promise((resolve)=>{ img.onload = resolve; img.onerror = resolve; });
+}
+
+function waitForVideoReady(video){
+  if(video.readyState >= 2) return Promise.resolve();
+  return new Promise((resolve)=>{
+    video.addEventListener('loadeddata', resolve, { once: true });
+    video.addEventListener('error', resolve, { once: true });
+  });
 }
 
 // 탭 전환
@@ -367,8 +383,365 @@ savePhotoBtn.addEventListener('click', async ()=>{
   }
 });
 
-saveVideoBtn.addEventListener('click', ()=>{
-  alert('영상 저장 기능은 준비 중이에요.');
+// 이 브라우저가 캔버스 애니메이션을 녹화할 수 있는지 (iOS Safari는 14.1+에서 지원)
+function supportsVideoRecording(){
+  return !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+}
+
+// WebCodecs(VideoEncoder/VideoDecoder)가 있으면 클립을 실제 재생 없이 프레임 단위로 바로
+// 디코딩·인코딩할 수 있어서 훨씬 빠르다. 없는 구형 브라우저에서는 실시간 재생 녹화로 대체한다
+function supportsFastEncoding(){
+  return !!(window.VideoEncoder && window.VideoDecoder);
+}
+
+// MediaRecorder가 받아줄 수 있는 포맷 중 가장 호환성 좋은 걸 고른다.
+// Safari는 webm을 못 받고 mp4(h264)만 받으므로 mp4를 먼저 시도하는데, 코덱 지정 없이 그냥
+// 'video/mp4'만 쓰면 브라우저가 그 안에 VP9을 넣어버릴 수도 있어서 반드시 avc1로 명시한다
+function pickVideoMimeType(){
+  const candidates = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  for(const type of candidates){
+    if(MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return '';
+}
+
+// "영상 저장"을 누르면 먼저 WebCodecs 기반의 빠른 방식(recordFrameVideoFast)을 시도하고,
+// 지원하지 않거나 중간에 실패하면 항상 되는 실시간 재생 녹화(recordFrameVideoRealtime)로 대체한다
+async function recordFrameVideo(){
+  if(supportsFastEncoding()){
+    try{
+      return await recordFrameVideoFast();
+    }catch(err){
+      // 코덱/디코딩 문제 등으로 빠른 경로가 실패해도 조용히 실시간 녹화로 넘어간다
+    }
+  }
+  return recordFrameVideoRealtime();
+}
+
+// 선택된 4개 클립을 mediabunny(WebCodecs)로 열어서 실시간 재생 없이 프레임을 순서대로 바로
+// 디코딩하고, 합성한 프레임을 바로 인코딩한다 — 영상 길이만큼 실제 시간이 걸리지 않는다
+async function recordFrameVideoFast(){
+  await document.fonts.ready;
+
+  const SCALE = 3;
+  const FRAME_W = 320;
+  const PAD_TOP = 28, PAD_X = 16, PAD_BOTTOM = 16;
+  const GAP = 8;
+  const SLOT_W = (FRAME_W - PAD_X * 2 - GAP) / 2;
+  const SLOT_H = Math.round(SLOT_W * 4 / 3);
+  const BRAND_H = 20;
+  const CAPTION_MARGIN_TOP = 16;
+  const NAMES_LINE_HEIGHT = 42;
+  const DATE_LINE_HEIGHT = 24;
+  const frameH = PAD_TOP + BRAND_H + GAP + SLOT_H + GAP + SLOT_H + CAPTION_MARGIN_TOP + NAMES_LINE_HEIGHT + DATE_LINE_HEIGHT + PAD_BOTTOM;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = FRAME_W * SCALE;
+  canvas.height = frameH * SCALE;
+  const ctx = canvas.getContext('2d');
+
+  const isCustom = currentFrameStyle.startsWith('custom-');
+  const style = isCustom
+    ? { border: '#ffffff', slotBorder: '#ffffff', text: '#ffffff' }
+    : FRAME_CANVAS_STYLE[currentFrameStyle];
+
+  const photoTop = PAD_TOP + BRAND_H + GAP;
+  const positions = [
+    [PAD_X, photoTop],
+    [PAD_X + SLOT_W + GAP, photoTop],
+    [PAD_X, photoTop + SLOT_H + GAP],
+    [PAD_X + SLOT_W + GAP, photoTop + SLOT_H + GAP]
+  ];
+  const captionTop = photoTop + SLOT_H + GAP + SLOT_H + CAPTION_MARGIN_TOP;
+
+  // 클립을 하나씩 열어서(디코딩 가능 여부까지 확인) 길이를 얻어둔다.
+  // 브라우저/기기에 따라 녹화된 코덱(특히 VP9)을 WebCodecs로 디코딩 못 하는 경우가 있는데,
+  // 그걸 조용히 빈 슬롯으로 넘기면 그 클립 길이가 통째로 빠져서 영상이 짧아지거나 비게 된다.
+  // 그래서 하나라도 디코딩에 실패하면 이 빠른 경로 자체를 실패시켜서 실시간 녹화로 통째로 넘긴다
+  const openResults = await Promise.all(selectedClips.map(async (clip)=>{
+    if(!clip) return { ok: true, data: null };
+    try{
+      const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(clip) });
+      const track = await input.getPrimaryVideoTrack();
+      if(!track || !(await track.canDecode())){ input.dispose(); return { ok: false }; }
+      const duration = await track.computeDuration();
+      const sink = new VideoSampleSink(track);
+      return { ok: true, data: { input, sink, duration } };
+    }catch(err){
+      return { ok: false };
+    }
+  }));
+
+  if(openResults.some((r)=> !r.ok)){
+    openResults.forEach((r)=>{ if(r.ok && r.data) r.data.input.dispose(); });
+    throw new Error('clip not decodable via WebCodecs');
+  }
+
+  const openClips = openResults.map((r)=> r.data);
+
+  try{
+    const durations = openClips.map((c)=> c ? c.duration : 0);
+    const totalSeconds = Math.max(...durations, 1);
+    const FPS = 30;
+    const frameCount = Math.max(1, Math.round(totalSeconds * FPS));
+
+    // 클립마다 "지금 시점에 보여줄 샘플"을 되감지 않고 순서대로만 따라가는 커서.
+    // 매 프레임 getSample(t)로 매번 새로 찾기보다 훨씬 빠르다(순차 디코딩).
+    // 샘플을 바로 캔버스에 그리는 대신 ImageBitmap으로 한 번 변환해두고 그걸 그리는 게
+    // (WebCodecs VideoFrame을 매 프레임 직접 drawImage하는 것보다) 훨씬 빠르다
+    const cursors = await Promise.all(openClips.map(async (c)=>{
+      if(!c) return null;
+      const iterator = c.sink.samples(0, c.duration)[Symbol.asyncIterator]();
+      let current = null;
+      let currentBitmap = null;
+      let next = await iterator.next();
+      return {
+        duration: c.duration,
+        async advanceTo(t){
+          let changed = false;
+          while(!next.done && next.value.timestamp <= t){
+            if(current) current.close();
+            current = next.value;
+            next = await iterator.next();
+            changed = true;
+          }
+          if(changed && current){
+            if(currentBitmap) currentBitmap.close();
+            currentBitmap = await createImageBitmap(current.toCanvasImageSource());
+          }
+          return currentBitmap;
+        },
+        close(){
+          if(current) current.close();
+          if(currentBitmap) currentBitmap.close();
+          if(next && !next.done) next.value.close();
+          if(iterator.return) iterator.return();
+        }
+      };
+    }));
+
+    const output = new Output({ format: new Mp4OutputFormat(), target: new BufferTarget() });
+    const videoSource = new CanvasSource(canvas, { codec: 'avc', quality: QUALITY_MEDIUM });
+    output.addVideoTrack(videoSource);
+    await output.start();
+
+    function drawFrame(bitmaps){
+      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+      ctx.clearRect(0, 0, FRAME_W, frameH);
+
+      if(isCustom && customFrameImageEls[currentFrameStyle]){
+        drawCoverImage(ctx, customFrameImageEls[currentFrameStyle], 0, 0, FRAME_W, frameH);
+      }else{
+        ctx.fillStyle = isCustom ? '#ffffff' : style.bg;
+        ctx.fillRect(0, 0, FRAME_W, frameH);
+      }
+      ctx.strokeStyle = style.border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = style.text;
+      ctx.font = "700 14px 'Montserrat'";
+      ctx.fillText(customBrand.textContent || '', FRAME_W / 2, PAD_TOP + BRAND_H / 2);
+
+      bitmaps.forEach((bitmap, i)=>{
+        const [x, y] = positions[i];
+        if(bitmap){
+          ctx.save();
+          ctx.filter = FILTER_CANVAS_VALUE[currentFilter];
+          ctx.drawImage(bitmap, x, y, SLOT_W, SLOT_H);
+          ctx.restore();
+        }
+        ctx.strokeStyle = style.slotBorder;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+      });
+
+      ctx.fillStyle = style.text;
+      ctx.font = "300 28px 'Great Vibes'";
+      ctx.fillText(customNames.textContent || '', FRAME_W / 2, captionTop + NAMES_LINE_HEIGHT / 2);
+
+      ctx.font = "500 16px 'Playfair Display'";
+      ctx.fillText(customDate.textContent || '', FRAME_W / 2, captionTop + NAMES_LINE_HEIGHT + DATE_LINE_HEIGHT / 2);
+    }
+
+    for(let i = 0; i < frameCount; i++){
+      const t = i / FPS;
+      const bitmaps = await Promise.all(cursors.map((cur)=> cur ? cur.advanceTo(Math.min(t, cur.duration)) : null));
+      drawFrame(bitmaps);
+      await videoSource.add(t, 1 / FPS);
+    }
+
+    cursors.forEach((cur)=> cur && cur.close());
+
+    await output.finalize();
+    return new Blob([output.target.buffer], { type: 'video/mp4' });
+  } finally {
+    openClips.forEach((c)=> c && c.input.dispose());
+  }
+}
+
+// 화면에는 항상 정지 사진만 보여주다가, "영상 저장"을 누른 이 순간에만 화면 밖에 임시
+// video 엘리먼트 4개를 띄워 재생시키고, 그걸 프레임(테두리/필터/문구)과 함께 캔버스에
+// 그려서 하나의 영상으로 녹화한다. 녹화 길이는 촬영 당시 타이머로 찍힌 클립 길이 그대로.
+// (WebCodecs를 못 쓰는 구형 브라우저를 위한 대체 경로)
+async function recordFrameVideoRealtime(){
+  await document.fonts.ready;
+
+  const SCALE = 3;
+  const FRAME_W = 320;
+  const PAD_TOP = 28, PAD_X = 16, PAD_BOTTOM = 16;
+  const GAP = 8;
+  const SLOT_W = (FRAME_W - PAD_X * 2 - GAP) / 2;
+  const SLOT_H = Math.round(SLOT_W * 4 / 3);
+  const BRAND_H = 20;
+  const CAPTION_MARGIN_TOP = 16;
+  const NAMES_LINE_HEIGHT = 42;
+  const DATE_LINE_HEIGHT = 24;
+  const frameH = PAD_TOP + BRAND_H + GAP + SLOT_H + GAP + SLOT_H + CAPTION_MARGIN_TOP + NAMES_LINE_HEIGHT + DATE_LINE_HEIGHT + PAD_BOTTOM;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = FRAME_W * SCALE;
+  canvas.height = frameH * SCALE;
+  const ctx = canvas.getContext('2d');
+
+  const isCustom = currentFrameStyle.startsWith('custom-');
+  const style = isCustom
+    ? { border: '#ffffff', slotBorder: '#ffffff', text: '#ffffff' }
+    : FRAME_CANVAS_STYLE[currentFrameStyle];
+
+  const photoTop = PAD_TOP + BRAND_H + GAP;
+  const positions = [
+    [PAD_X, photoTop],
+    [PAD_X + SLOT_W + GAP, photoTop],
+    [PAD_X, photoTop + SLOT_H + GAP],
+    [PAD_X + SLOT_W + GAP, photoTop + SLOT_H + GAP]
+  ];
+  const captionTop = photoTop + SLOT_H + GAP + SLOT_H + CAPTION_MARGIN_TOP;
+
+  // 화면 밖(안 보이는 곳)에서 재생되는 임시 video 엘리먼트 — 평소 화면에는 등장하지 않는다
+  const tempVideos = selectedClips.map((clip)=>{
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.style.position = 'fixed';
+    video.style.left = '-9999px';
+    video.style.width = '1px';
+    video.style.height = '1px';
+    if(clip) video.src = URL.createObjectURL(clip);
+    document.body.append(video);
+    return video;
+  });
+
+  await Promise.all(tempVideos.map((video)=> video.src && waitForVideoReady(video)));
+  await Promise.all(tempVideos.map((video)=> video.src ? video.play().catch(()=>{}) : null));
+
+  function drawFrame(){
+    ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+    ctx.clearRect(0, 0, FRAME_W, frameH);
+
+    if(isCustom && customFrameImageEls[currentFrameStyle]){
+      drawCoverImage(ctx, customFrameImageEls[currentFrameStyle], 0, 0, FRAME_W, frameH);
+    }else{
+      ctx.fillStyle = isCustom ? '#ffffff' : style.bg;
+      ctx.fillRect(0, 0, FRAME_W, frameH);
+    }
+    ctx.strokeStyle = style.border;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, FRAME_W - 1, frameH - 1);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = style.text;
+    ctx.font = "700 14px 'Montserrat'";
+    ctx.fillText(customBrand.textContent || '', FRAME_W / 2, PAD_TOP + BRAND_H / 2);
+
+    tempVideos.forEach((video, i)=>{
+      const [x, y] = positions[i];
+      if(video.src && video.readyState >= 2){
+        ctx.save();
+        ctx.filter = FILTER_CANVAS_VALUE[currentFilter];
+        ctx.drawImage(video, x, y, SLOT_W, SLOT_H);
+        ctx.restore();
+      }
+      ctx.strokeStyle = style.slotBorder;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, SLOT_W - 1, SLOT_H - 1);
+    });
+
+    ctx.fillStyle = style.text;
+    ctx.font = "300 28px 'Great Vibes'";
+    ctx.fillText(customNames.textContent || '', FRAME_W / 2, captionTop + NAMES_LINE_HEIGHT / 2);
+
+    ctx.font = "500 16px 'Playfair Display'";
+    ctx.fillText(customDate.textContent || '', FRAME_W / 2, captionTop + NAMES_LINE_HEIGHT + DATE_LINE_HEIGHT / 2);
+  }
+
+  // 녹화 길이는 촬영 당시 타이머로 찍힌 실제 클립 길이에 맞춘다 (고정값 아님)
+  const durations = tempVideos.map((v)=> (v.src && isFinite(v.duration)) ? v.duration : 0);
+  const RECORD_MS = Math.max(...durations, 1) * 1000;
+
+  const mimeType = pickVideoMimeType();
+  const stream = canvas.captureStream(30);
+  const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+  const chunks = [];
+  recorder.ondataavailable = (e)=>{ if(e.data.size > 0) chunks.push(e.data); };
+
+  const stopped = new Promise((resolve)=>{
+    recorder.onstop = ()=> resolve(new Blob(chunks, { type: mimeType || 'video/webm' }));
+  });
+
+  recorder.start();
+
+  await new Promise((resolve)=>{
+    const startTime = performance.now();
+    function frame(now){
+      drawFrame();
+      if(now - startTime < RECORD_MS){
+        requestAnimationFrame(frame);
+      }else{
+        resolve();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+
+  recorder.stop();
+
+  // 정리 — 임시 video 엘리먼트와 objectURL은 다 쓰고 나면 바로 해제
+  tempVideos.forEach((video)=>{
+    video.pause();
+    if(video.src) URL.revokeObjectURL(video.src);
+    video.remove();
+  });
+
+  return stopped;
+}
+
+saveVideoBtn.addEventListener('click', async ()=>{
+  if(!supportsVideoRecording()){
+    alert('이 브라우저에서는 영상 저장을 지원하지 않아요.');
+    return;
+  }
+
+  saveVideoBtn.disabled = true;
+  try{
+    const blob = await recordFrameVideo();
+    const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pledgebooth.${ext}`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(err){
+    alert('영상 저장에 실패했어요. 다시 시도해주세요.');
+  } finally {
+    saveVideoBtn.disabled = false;
+  }
 });
 
 // 프레임/필터가 바뀔 때마다 인쇄용 이미지를 미리 만들어 #print_output에 심어둔다.

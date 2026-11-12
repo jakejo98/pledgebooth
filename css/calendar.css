@@ -72,7 +72,11 @@
 }
 .calendar_day:hover{ background:var(--ivory-2, #FBF8F1); }
 .calendar_day.is_muted{ color:#C9BEA8; }
-.calendar_day.is_today{ font-weight:700; color:var(--gold-dark, #9C7C18); }
+.calendar_day.is_today{
+  background:linear-gradient(135deg, var(--gold-light, #D9B84D), var(--gold-dark, #9C7C18));
+  color:#fff;
+  font-weight:700;
+}
 .calendar_day.is_selected{
   background:linear-gradient(135deg, var(--gold-light, #D9B84D), var(--gold-dark, #9C7C18));
   color:var(--white, #FFFDF9);

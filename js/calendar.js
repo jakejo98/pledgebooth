@@ -82,7 +82,8 @@ export async function createDatePicker({ container, triggerEl, hiddenInput, onSe
       btn.textContent = cellDate.getDate();
 
       if(muted) btn.classList.add('is_muted');
-      if(cellDate.getTime() === today.getTime()) btn.classList.add('is_today');
+      // 선택된 날짜가 없을 때만 오늘 날짜를 활성 표시 — 다른 날짜를 고르면 그 날짜만 활성화
+      if(!selectedDate && cellDate.getTime() === today.getTime()) btn.classList.add('is_today');
       if(selectedDate && cellDate.getTime() === selectedDate.getTime()) btn.classList.add('is_selected');
 
       btn.addEventListener('click', ()=>{

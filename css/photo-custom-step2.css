@@ -312,7 +312,7 @@ html, body.custom_body{
   color:var(--ink, #3A2F22);
   cursor:pointer;
 }
-.action_btn svg{ width:17px; height:17px; }
+.action_btn img{ width:16px; height:16px; }
 
 .qr_btn{
   width:100%;
@@ -332,7 +332,7 @@ html, body.custom_body{
   font-weight:700;
   cursor:pointer;
 }
-.qr_btn svg{ width:18px; height:18px; }
+.qr_btn img{ width:16px; height:16px; }
 
 /* 프린트 — 평소엔 화면 밖으로 치워두고 인쇄할 때만 완성된 프레임 이미지 한 장만 보여줌.
    display:none으로 숨기면 Safari가 인쇄 시점에 아예 렌더링을 건너뛰어버리는 경우가 있어서,
