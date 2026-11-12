@@ -87,6 +87,124 @@ const FILTER_CANVAS_VALUE = {
   hardmono: 'grayscale(1) contrast(1.4) brightness(0.95)'
 };
 
+// iOS Safari 등은 캔버스의 ctx.filter를 지원하지 않아서(조용히 무시됨) 저장본에 필터가 빠진다.
+// 실제로 그려서 확인한 뒤, 미지원이면 같은 CSS 필터 수식을 색상 행렬로 직접 계산해서 픽셀에 적용한다
+const SUPPORTS_CANVAS_FILTER = (()=>{
+  try{
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    const cctx = c.getContext('2d', { willReadFrequently: true });
+    cctx.fillStyle = '#ffffff';
+    cctx.filter = 'brightness(0)';
+    cctx.fillRect(0, 0, 1, 1);
+    return cctx.getImageData(0, 0, 1, 1).data[0] < 128;
+  }catch(e){
+    return false;
+  }
+})();
+
+// CSS 필터 함수 → 3x4 색상 행렬 (Filter Effects 명세의 수식, 0~1 범위 기준)
+function filterOpToMatrix(name, v){
+  switch(name){
+    case 'brightness': return [v,0,0,0, 0,v,0,0, 0,0,v,0];
+    case 'contrast': { const o = 0.5 - 0.5 * v; return [v,0,0,o, 0,v,0,o, 0,0,v,o]; }
+    case 'saturate': return [
+      0.213 + 0.787 * v, 0.715 - 0.715 * v, 0.072 - 0.072 * v, 0,
+      0.213 - 0.213 * v, 0.715 + 0.285 * v, 0.072 - 0.072 * v, 0,
+      0.213 - 0.213 * v, 0.715 - 0.715 * v, 0.072 + 0.928 * v, 0
+    ];
+    case 'hue-rotate': {
+      const r = v * Math.PI / 180, cos = Math.cos(r), sin = Math.sin(r);
+      return [
+        0.213 + cos * 0.787 - sin * 0.213, 0.715 - cos * 0.715 - sin * 0.715, 0.072 - cos * 0.072 + sin * 0.928, 0,
+        0.213 - cos * 0.213 + sin * 0.143, 0.715 + cos * 0.285 + sin * 0.140, 0.072 - cos * 0.072 - sin * 0.283, 0,
+        0.213 - cos * 0.213 - sin * 0.787, 0.715 - cos * 0.715 + sin * 0.715, 0.072 + cos * 0.928 + sin * 0.072, 0
+      ];
+    }
+    case 'sepia': { const a = 1 - Math.min(v, 1); return [
+      0.393 + 0.607 * a, 0.769 - 0.769 * a, 0.189 - 0.189 * a, 0,
+      0.349 - 0.349 * a, 0.686 + 0.314 * a, 0.168 - 0.168 * a, 0,
+      0.272 - 0.272 * a, 0.534 - 0.534 * a, 0.131 + 0.869 * a, 0
+    ]; }
+    case 'grayscale': { const a = 1 - Math.min(v, 1); return [
+      0.2126 + 0.7874 * a, 0.7152 - 0.7152 * a, 0.0722 - 0.0722 * a, 0,
+      0.2126 - 0.2126 * a, 0.7152 + 0.2848 * a, 0.0722 - 0.0722 * a, 0,
+      0.2126 - 0.2126 * a, 0.7152 - 0.7152 * a, 0.0722 + 0.9278 * a, 0
+    ]; }
+  }
+  return null;
+}
+
+// "saturate(1.1) hue-rotate(-8deg) ..." → 함수별 행렬 목록 (왼쪽부터 순서대로 적용)
+const filterMatrixCache = {};
+function getFilterMatrices(filterKey){
+  if(filterMatrixCache[filterKey]) return filterMatrixCache[filterKey];
+  const value = FILTER_CANVAS_VALUE[filterKey] || '';
+  const list = [];
+  value.replace(/([a-z-]+)\(\s*(-?[\d.]+)\s*(deg|%)?\s*\)/g, (_, name, num, unit)=>{
+    const v = unit === '%' ? parseFloat(num) / 100 : parseFloat(num);
+    const m = filterOpToMatrix(name, v);
+    if(m) list.push(m);
+  });
+  return (filterMatrixCache[filterKey] = list);
+}
+
+function applyFilterMatricesToPixels(data, matrices){
+  for(let i = 0; i < data.length; i += 4){
+    let r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+    for(let k = 0; k < matrices.length; k++){
+      const m = matrices[k];
+      const nr = m[0] * r + m[1] * g + m[2] * b + m[3];
+      const ng = m[4] * r + m[5] * g + m[6] * b + m[7];
+      const nb = m[8] * r + m[9] * g + m[10] * b + m[11];
+      // 브라우저처럼 함수 하나 적용할 때마다 0~1로 자른다
+      r = nr < 0 ? 0 : nr > 1 ? 1 : nr;
+      g = ng < 0 ? 0 : ng > 1 ? 1 : ng;
+      b = nb < 0 ? 0 : nb > 1 ? 1 : nb;
+    }
+    data[i] = r * 255 + 0.5;
+    data[i + 1] = g * 255 + 0.5;
+    data[i + 2] = b * 255 + 0.5;
+  }
+}
+
+// 영상은 매 프레임 그리므로 작업용 캔버스를 재사용한다
+let filterScratchCanvas = null;
+
+// 사진 칸 하나를 필터 적용해서 그린다 (ctx.filter 지원 여부와 무관하게 같은 결과)
+function drawFilteredImage(ctx, source, x, y, w, h, filterKey){
+  const filterValue = FILTER_CANVAS_VALUE[filterKey];
+  if(!filterValue){
+    ctx.drawImage(source, x, y, w, h);
+    return;
+  }
+  if(SUPPORTS_CANVAS_FILTER){
+    ctx.save();
+    ctx.filter = filterValue;
+    ctx.drawImage(source, x, y, w, h);
+    ctx.restore();
+    return;
+  }
+
+  // 실제 픽셀 크기(ctx.scale 반영)로 작업해야 화질이 떨어지지 않는다
+  const t = ctx.getTransform();
+  const pw = Math.max(1, Math.round(w * Math.abs(t.a)));
+  const ph = Math.max(1, Math.round(h * Math.abs(t.d)));
+  if(!filterScratchCanvas) filterScratchCanvas = document.createElement('canvas');
+  const sc = filterScratchCanvas;
+  if(sc.width !== pw || sc.height !== ph){
+    sc.width = pw;
+    sc.height = ph;
+  }
+  const sctx = sc.getContext('2d', { willReadFrequently: true });
+  sctx.clearRect(0, 0, pw, ph);
+  sctx.drawImage(source, 0, 0, pw, ph);
+  const imageData = sctx.getImageData(0, 0, pw, ph);
+  applyFilterMatricesToPixels(imageData.data, getFilterMatrices(filterKey));
+  sctx.putImageData(imageData, 0, 0);
+  ctx.drawImage(sc, x, y, w, h);
+}
+
 let currentFrameStyle = 'basic';
 let currentFilter = 'coolrose';
 let selectedClips = []; // 선택된 4컷과 같은 순서의 영상 클립 — "영상 저장" 때만 쓰인다
@@ -380,10 +498,7 @@ async function renderFrameToCanvas(){
   frameSlotImgs.forEach((img, i)=>{
     const [x, y] = positions[i];
     if(img.src){
-      ctx.save();
-      ctx.filter = FILTER_CANVAS_VALUE[currentFilter];
-      ctx.drawImage(img, x, y, SLOT_W, SLOT_H);
-      ctx.restore();
+      drawFilteredImage(ctx, img, x, y, SLOT_W, SLOT_H, currentFilter);
     }
     if(style.slotBorder){
       ctx.strokeStyle = style.slotBorder;
@@ -656,10 +771,7 @@ async function recordFrameVideoFast(){
       bitmaps.forEach((bitmap, i)=>{
         const [x, y] = positions[i];
         if(bitmap){
-          ctx.save();
-          ctx.filter = FILTER_CANVAS_VALUE[currentFilter];
-          ctx.drawImage(bitmap, x, y, SLOT_W, SLOT_H);
-          ctx.restore();
+          drawFilteredImage(ctx, bitmap, x, y, SLOT_W, SLOT_H, currentFilter);
         }
         if(style.slotBorder){
           ctx.strokeStyle = style.slotBorder;
@@ -774,10 +886,7 @@ async function recordFrameVideoRealtime(){
     tempVideos.forEach((video, i)=>{
       const [x, y] = positions[i];
       if(video.src && video.readyState >= 2){
-        ctx.save();
-        ctx.filter = FILTER_CANVAS_VALUE[currentFilter];
-        ctx.drawImage(video, x, y, SLOT_W, SLOT_H);
-        ctx.restore();
+        drawFilteredImage(ctx, video, x, y, SLOT_W, SLOT_H, currentFilter);
       }
       if(style.slotBorder){
         ctx.strokeStyle = style.slotBorder;
