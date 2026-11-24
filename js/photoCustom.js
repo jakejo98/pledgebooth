@@ -242,7 +242,7 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
-  customBrand.textContent = 'Pledge';
+  customBrand.textContent = data.framePhrase || '';
   customNames.textContent = data.coupleNames;
   customDate.textContent = formatDateDisplay(data.weddingDate);
 
@@ -484,7 +484,7 @@ async function renderFrameToCanvas(){
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = style.text;
-  ctx.font = "700 14px 'Montserrat'";
+  ctx.font = "300 20px 'Great Vibes'";
   ctx.fillText(customBrand.textContent || '', FRAME_W / 2, PAD_TOP + BRAND_H / 2);
 
   const photoTop = PAD_TOP + BRAND_H + GAP;
@@ -765,7 +765,7 @@ async function recordFrameVideoFast(){
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = style.text;
-      ctx.font = "700 14px 'Montserrat'";
+      ctx.font = "300 20px 'Great Vibes'";
       ctx.fillText(customBrand.textContent || '', FRAME_W / 2, PAD_TOP + BRAND_H / 2);
 
       bitmaps.forEach((bitmap, i)=>{
@@ -880,7 +880,7 @@ async function recordFrameVideoRealtime(){
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = style.text;
-    ctx.font = "700 14px 'Montserrat'";
+    ctx.font = "300 20px 'Great Vibes'";
     ctx.fillText(customBrand.textContent || '', FRAME_W / 2, PAD_TOP + BRAND_H / 2);
 
     tempVideos.forEach((video, i)=>{

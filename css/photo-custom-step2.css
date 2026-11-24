@@ -61,11 +61,11 @@ html, body.custom_body{
 .custom_frame .frame_brand{
   grid-column:1 / -1;
   text-align:center;
-  font-family:'Montserrat', sans-serif;
-  font-size:calc(14 * var(--u));
+  font-family:'Great Vibes', cursive;
+  font-size:calc(20 * var(--u));
   line-height:calc(20 * var(--u));
-  font-weight:700;
-  letter-spacing:0.16em;
+  min-height:calc(20 * var(--u)); /* 문구가 비어 있어도 자리 유지 */
+  font-weight:300;
   color:#333;
 }
 .custom_frame .frame_slot{

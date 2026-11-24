@@ -191,6 +191,7 @@ function initFrontend(){
 
       // 새 로그인 세션 시작 시 이전에 등록했던 예식 정보는 초기화
       await setDoc(doc(db, 'user_account_list', cred.user.uid), {
+        framePhrase: deleteField(),
         coupleNames: deleteField(),
         weddingDate: deleteField()
       }, { merge: true });

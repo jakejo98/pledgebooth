@@ -7,6 +7,7 @@ import { createDatePicker } from './calendar.js';
 const form = document.getElementById('form_register');
 const submitBtn = document.getElementById('register_submit');
 const logoutBtn = document.getElementById('logout_btn');
+const framePhraseInput = document.getElementById('frame_phrase');
 const coupleNamesInput = document.getElementById('couple_names');
 const weddingDateInput = document.getElementById('wedding_date');
 const weddingDateDisplay = document.getElementById('wedding_date_display');
@@ -52,6 +53,7 @@ onAuthStateChanged(auth, async (user)=>{
   currentUid = user.uid;
 
   const data = memberSnap.data();
+  if(data.framePhrase) framePhraseInput.value = data.framePhrase;
   if(data.coupleNames) coupleNamesInput.value = data.coupleNames;
   if(data.weddingDate){
     weddingDateInput.value = data.weddingDate;
@@ -66,6 +68,7 @@ logoutBtn.addEventListener('click', async ()=>{
   try{
     if(currentUid){
       await setDoc(doc(db, 'user_account_list', currentUid), {
+        framePhrase: deleteField(),
         coupleNames: deleteField(),
         weddingDate: deleteField()
       }, { merge: true });
@@ -80,10 +83,12 @@ form.addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!currentUid) return;
 
+  const framePhrase = framePhraseInput.value.trim();
   const coupleNames = coupleNamesInput.value.trim();
   const weddingDate = weddingDateInput.value;
 
   let ok = true;
+  if(!framePhrase){ setHint('frame_phrase_hint','프레임 상단 문구를 입력해주세요.'); ok = false; } else setHint('frame_phrase_hint','');
   if(!coupleNames){ setHint('couple_names_hint','신랑 & 신부 성함을 입력해주세요.'); ok = false; } else setHint('couple_names_hint','');
   if(!weddingDate){ setHint('wedding_date_hint','예식 일자를 선택해주세요.'); ok = false; } else setHint('wedding_date_hint','');
   if(!ok) return;
@@ -91,6 +96,7 @@ form.addEventListener('submit', async (e)=>{
   setLoading(submitBtn, true, '포토 스튜디오 입장하기', '저장 중...');
   try{
     await setDoc(doc(db, 'user_account_list', currentUid), {
+      framePhrase,
       coupleNames,
       weddingDate,
       updatedAt: serverTimestamp()

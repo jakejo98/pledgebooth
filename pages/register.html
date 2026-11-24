@@ -28,9 +28,15 @@
 
     <div class="eyebrow">Wedding Info</div>
     <h2 class="heading">예식 정보 등록</h2>
-    <p class="subheading">신랑・신부 성함과 예식 일자를 입력하면 포토부스 화면에 반영돼요.</p>
+    <p class="subheading">문구와 신랑・신부 성함, 예식 일자를 입력하면 포토부스 화면에 반영돼요.</p>
 
     <form id="form_register" novalidate>
+      <div class="field">
+        <label for="frame_phrase">프레임 상단 문구</label>
+        <input type="text" id="frame_phrase" name="framePhrase" placeholder="WEDDING DAY" maxlength="20" autocomplete="off" required>
+        <div class="hint" id="frame_phrase_hint"></div>
+      </div>
+
       <div class="field">
         <label for="couple_names">신랑 & 신부 성함</label>
         <input type="text" id="couple_names" name="coupleNames" placeholder="JIHOON & HAYOUNG" required>

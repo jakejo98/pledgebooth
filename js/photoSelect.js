@@ -48,7 +48,7 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
-  selectionBrand.textContent = 'Pledge';
+  selectionBrand.textContent = data.framePhrase || '';
   frameCaptionNames.textContent = data.coupleNames;
   frameCaptionDate.textContent = formatDateDisplay(data.weddingDate);
 

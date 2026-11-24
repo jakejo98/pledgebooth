@@ -13,7 +13,7 @@ service cloud.firestore {
       allow update: if request.auth != null
                     && request.auth.uid == uid
                     && request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['coupleNames', 'weddingDate', 'updatedAt']);
+                         .hasOnly(['framePhrase', 'coupleNames', 'weddingDate', 'updatedAt']);
 
       allow delete: if false;
     }

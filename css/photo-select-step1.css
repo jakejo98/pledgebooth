@@ -47,11 +47,11 @@ html, body.select_body{
 .frame_brand{
   grid-column:1 / -1;
   text-align:center;
-  font-family:'Montserrat', sans-serif;
-  font-size:14px;
+  font-family:'Great Vibes', cursive;
+  font-size:20px;
   line-height:20px;
-  font-weight:700;
-  letter-spacing:0.16em;
+  min-height:20px; /* 문구가 비어 있어도 자리 유지 */
+  font-weight:300;
   color:#333;
 }
 .frame_slot{
